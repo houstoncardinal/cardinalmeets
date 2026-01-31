@@ -7,12 +7,15 @@ import {
   Video,
   VideoOff,
   Monitor,
+  MonitorOff,
   MessageSquare,
   Users,
   Phone,
   MoreHorizontal,
   Hand,
   Settings,
+  Captions,
+  CaptionsOff,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -22,23 +25,36 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 interface MeetingControlsProps {
-  onToggleChat: () => void;
-  onToggleParticipants: () => void;
-  onLeaveMeeting: () => void;
+  isMuted: boolean;
+  isVideoOn: boolean;
+  isScreenSharing: boolean;
   isChatOpen: boolean;
   isParticipantsOpen: boolean;
+  isCaptionsOn: boolean;
+  onToggleMute: () => void;
+  onToggleVideo: () => void;
+  onToggleScreenShare: () => void;
+  onToggleChat: () => void;
+  onToggleParticipants: () => void;
+  onToggleCaptions: () => void;
+  onLeaveMeeting: () => void;
 }
 
 export function MeetingControls({
-  onToggleChat,
-  onToggleParticipants,
-  onLeaveMeeting,
+  isMuted,
+  isVideoOn,
+  isScreenSharing,
   isChatOpen,
   isParticipantsOpen,
+  isCaptionsOn,
+  onToggleMute,
+  onToggleVideo,
+  onToggleScreenShare,
+  onToggleChat,
+  onToggleParticipants,
+  onToggleCaptions,
+  onLeaveMeeting,
 }: MeetingControlsProps) {
-  const [isMuted, setIsMuted] = useState(false);
-  const [isVideoOff, setIsVideoOff] = useState(false);
-  const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [isHandRaised, setIsHandRaised] = useState(false);
 
   const ControlButton = ({
@@ -88,24 +104,31 @@ export function MeetingControls({
       <ControlButton
         icon={isMuted ? MicOff : Mic}
         label={isMuted ? "Unmute" : "Mute"}
-        onClick={() => setIsMuted(!isMuted)}
+        onClick={onToggleMute}
         isActive={!isMuted}
       />
 
       <ControlButton
-        icon={isVideoOff ? VideoOff : Video}
-        label={isVideoOff ? "Turn on camera" : "Turn off camera"}
-        onClick={() => setIsVideoOff(!isVideoOff)}
-        isActive={!isVideoOff}
+        icon={isVideoOn ? Video : VideoOff}
+        label={isVideoOn ? "Turn off camera" : "Turn on camera"}
+        onClick={onToggleVideo}
+        isActive={isVideoOn}
       />
 
       <div className="mx-1 h-8 w-px bg-meeting-border" />
 
       <ControlButton
-        icon={Monitor}
+        icon={isScreenSharing ? MonitorOff : Monitor}
         label={isScreenSharing ? "Stop sharing" : "Share screen"}
-        onClick={() => setIsScreenSharing(!isScreenSharing)}
+        onClick={onToggleScreenShare}
         variant={isScreenSharing ? "accent" : "default"}
+      />
+
+      <ControlButton
+        icon={isCaptionsOn ? Captions : CaptionsOff}
+        label={isCaptionsOn ? "Turn off captions" : "Turn on captions"}
+        onClick={onToggleCaptions}
+        variant={isCaptionsOn ? "accent" : "default"}
       />
 
       <ControlButton
