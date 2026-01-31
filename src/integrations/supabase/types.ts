@@ -168,6 +168,82 @@ export type Database = {
         }
         Relationships: []
       }
+      signaling: {
+        Row: {
+          created_at: string
+          id: string
+          meeting_id: string
+          payload: Json
+          recipient_id: string | null
+          sender_id: string
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          meeting_id: string
+          payload: Json
+          recipient_id?: string | null
+          sender_id: string
+          type: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          meeting_id?: string
+          payload?: Json
+          recipient_id?: string | null
+          sender_id?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "signaling_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transcriptions: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          meeting_id: string
+          speaker_id: string
+          timestamp_end: number | null
+          timestamp_start: number
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          meeting_id: string
+          speaker_id: string
+          timestamp_end?: number | null
+          timestamp_start: number
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          meeting_id?: string
+          speaker_id?: string
+          timestamp_end?: number | null
+          timestamp_start?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transcriptions_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string

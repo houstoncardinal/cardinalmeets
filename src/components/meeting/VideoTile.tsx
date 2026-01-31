@@ -1,4 +1,5 @@
-import { Mic, MicOff, Pin } from "lucide-react";
+import { useEffect, useRef } from "react";
+import { Mic, MicOff, User } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface VideoTileProps {
@@ -10,6 +11,8 @@ interface VideoTileProps {
   isPinned?: boolean;
   isLocal?: boolean;
   isSpeaking?: boolean;
+  isScreenShare?: boolean;
+  stream?: MediaStream;
   className?: string;
 }
 
@@ -22,17 +25,38 @@ export function VideoTile({
   isPinned = false,
   isLocal = false,
   isSpeaking = false,
+  isScreenShare = false,
+  stream,
   className = "",
 }: VideoTileProps) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    if (videoRef.current && stream) {
+      videoRef.current.srcObject = stream;
+    }
+  }, [stream]);
+
+  const hasVideoStream = stream && isVideoOn;
+
   return (
     <div
       className={`relative flex h-full w-full items-center justify-center overflow-hidden rounded-xl bg-meeting-card transition-all ${
         isSpeaking ? "ring-2 ring-primary" : ""
       } ${className}`}
     >
-      {isVideoOn ? (
+      {hasVideoStream ? (
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted={isLocal}
+          className={`h-full w-full object-cover ${
+            isLocal && !isScreenShare ? "scale-x-[-1]" : ""
+          }`}
+        />
+      ) : isVideoOn && !stream ? (
         <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-accent/20">
-          {/* Video placeholder - in real app, this would be the video stream */}
           <div className="flex h-full w-full items-center justify-center">
             <Avatar className="h-24 w-24 border-2 border-meeting-border">
               <AvatarImage src={avatarUrl} alt={name} />
@@ -47,7 +71,7 @@ export function VideoTile({
           <Avatar className="h-20 w-20 border-2 border-meeting-border">
             <AvatarImage src={avatarUrl} alt={name} />
             <AvatarFallback className="bg-primary text-xl font-semibold text-primary-foreground">
-              {initials}
+              {isScreenShare ? <User className="h-8 w-8" /> : initials}
             </AvatarFallback>
           </Avatar>
         </div>
@@ -58,9 +82,8 @@ export function VideoTile({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium text-meeting-text">
-              {name} {isLocal && "(You)"}
+              {name} {isLocal && !isScreenShare && "(You)"}
             </span>
-            {isPinned && <Pin className="h-3 w-3 text-primary" />}
           </div>
           <div className="flex items-center gap-1">
             {isMuted ? (
