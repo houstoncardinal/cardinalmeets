@@ -1,10 +1,14 @@
 import { Button } from "@/components/ui/button";
 import { Video, Menu } from "lucide-react";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { useAuth } from "@/hooks/useAuth";
 
 export function Header() {
   const [isOpen, setIsOpen] = useState(false);
+  const navigate = useNavigate();
+  const { user } = useAuth();
 
   const navItems = [
     { label: "Features", href: "#features" },
@@ -38,8 +42,16 @@ export function Header() {
         </div>
 
         <div className="hidden items-center gap-3 md:flex">
-          <Button variant="ghost">Sign in</Button>
-          <Button>Get Started Free</Button>
+          {user ? (
+            <Button onClick={() => navigate("/dashboard")}>Dashboard</Button>
+          ) : (
+            <>
+              <Button variant="ghost" onClick={() => navigate("/auth")}>
+                Sign in
+              </Button>
+              <Button onClick={() => navigate("/auth")}>Get Started Free</Button>
+            </>
+          )}
         </div>
 
         <Sheet open={isOpen} onOpenChange={setIsOpen}>
@@ -61,10 +73,39 @@ export function Header() {
                 </a>
               ))}
               <div className="mt-4 flex flex-col gap-2">
-                <Button variant="outline" className="w-full">
-                  Sign in
-                </Button>
-                <Button className="w-full">Get Started Free</Button>
+                {user ? (
+                  <Button
+                    className="w-full"
+                    onClick={() => {
+                      navigate("/dashboard");
+                      setIsOpen(false);
+                    }}
+                  >
+                    Dashboard
+                  </Button>
+                ) : (
+                  <>
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => {
+                        navigate("/auth");
+                        setIsOpen(false);
+                      }}
+                    >
+                      Sign in
+                    </Button>
+                    <Button
+                      className="w-full"
+                      onClick={() => {
+                        navigate("/auth");
+                        setIsOpen(false);
+                      }}
+                    >
+                      Get Started Free
+                    </Button>
+                  </>
+                )}
               </div>
             </nav>
           </SheetContent>
