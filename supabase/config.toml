@@ -2,3 +2,9 @@ project_id = "clsctjhygofzbqaowdcq"
 
 [functions.transcribe]
 verify_jwt = true
+
+[functions.send-meeting-invitation]
+verify_jwt = true
+
+[functions.generate-meeting-summary]
+verify_jwt = true

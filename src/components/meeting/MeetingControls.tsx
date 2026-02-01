@@ -16,11 +16,16 @@ import {
   Settings,
   Captions,
   CaptionsOff,
+  Circle,
+  CircleStop,
+  Sparkles,
+  Image,
 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
@@ -31,12 +36,17 @@ interface MeetingControlsProps {
   isChatOpen: boolean;
   isParticipantsOpen: boolean;
   isCaptionsOn: boolean;
+  isRecording: boolean;
+  isSummaryOpen: boolean;
   onToggleMute: () => void;
   onToggleVideo: () => void;
   onToggleScreenShare: () => void;
   onToggleChat: () => void;
   onToggleParticipants: () => void;
   onToggleCaptions: () => void;
+  onToggleRecording: () => void;
+  onToggleSummary: () => void;
+  onOpenBackgroundSettings: () => void;
   onLeaveMeeting: () => void;
 }
 
@@ -47,12 +57,17 @@ export function MeetingControls({
   isChatOpen,
   isParticipantsOpen,
   isCaptionsOn,
+  isRecording,
+  isSummaryOpen,
   onToggleMute,
   onToggleVideo,
   onToggleScreenShare,
   onToggleChat,
   onToggleParticipants,
   onToggleCaptions,
+  onToggleRecording,
+  onToggleSummary,
+  onOpenBackgroundSettings,
   onLeaveMeeting,
 }: MeetingControlsProps) {
   const [isHandRaised, setIsHandRaised] = useState(false);
@@ -68,11 +83,14 @@ export function MeetingControls({
     label: string;
     onClick: () => void;
     isActive?: boolean;
-    variant?: "default" | "destructive" | "accent";
+    variant?: "default" | "destructive" | "accent" | "recording";
   }) => {
     const getButtonClasses = () => {
       if (variant === "destructive") {
         return "bg-destructive hover:bg-destructive/90 text-destructive-foreground";
+      }
+      if (variant === "recording") {
+        return "bg-destructive hover:bg-destructive/90 text-destructive-foreground animate-pulse";
       }
       if (variant === "accent" || isActive) {
         return "bg-primary hover:bg-primary/90 text-primary-foreground";
@@ -125,6 +143,13 @@ export function MeetingControls({
       />
 
       <ControlButton
+        icon={isRecording ? CircleStop : Circle}
+        label={isRecording ? "Stop recording" : "Start recording"}
+        onClick={onToggleRecording}
+        variant={isRecording ? "recording" : "default"}
+      />
+
+      <ControlButton
         icon={isCaptionsOn ? Captions : CaptionsOff}
         label={isCaptionsOn ? "Turn off captions" : "Turn on captions"}
         onClick={onToggleCaptions}
@@ -154,6 +179,13 @@ export function MeetingControls({
         variant={isChatOpen ? "accent" : "default"}
       />
 
+      <ControlButton
+        icon={Sparkles}
+        label="AI Summary"
+        onClick={onToggleSummary}
+        variant={isSummaryOpen ? "accent" : "default"}
+      />
+
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
@@ -165,6 +197,11 @@ export function MeetingControls({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="center" className="w-48">
+          <DropdownMenuItem onClick={onOpenBackgroundSettings}>
+            <Image className="mr-2 h-4 w-4" />
+            Background Effects
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
           <DropdownMenuItem>
             <Settings className="mr-2 h-4 w-4" />
             Settings

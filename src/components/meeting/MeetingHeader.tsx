@@ -1,15 +1,28 @@
-import { Shield, Copy, Check } from "lucide-react";
+import { Shield, Copy, Check, Circle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 
 interface MeetingHeaderProps {
   meetingId: string;
   meetingTitle: string;
+  isRecording?: boolean;
+  recordingDuration?: number;
 }
 
-export function MeetingHeader({ meetingId, meetingTitle }: MeetingHeaderProps) {
+export function MeetingHeader({
+  meetingId,
+  meetingTitle,
+  isRecording = false,
+  recordingDuration = 0,
+}: MeetingHeaderProps) {
   const [copied, setCopied] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   const copyMeetingId = () => {
     navigator.clipboard.writeText(meetingId);
@@ -19,10 +32,16 @@ export function MeetingHeader({ meetingId, meetingTitle }: MeetingHeaderProps) {
   };
 
   const formatTime = () => {
-    return new Date().toLocaleTimeString([], {
+    return currentTime.toLocaleTimeString([], {
       hour: "2-digit",
       minute: "2-digit",
     });
+  };
+
+  const formatDuration = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
   return (
@@ -60,6 +79,17 @@ export function MeetingHeader({ meetingId, meetingTitle }: MeetingHeaderProps) {
       </div>
 
       <div className="flex items-center gap-4">
+        {isRecording && (
+          <>
+            <div className="flex items-center gap-2 rounded-full bg-destructive/20 px-3 py-1">
+              <Circle className="h-3 w-3 animate-pulse fill-destructive text-destructive" />
+              <span className="text-sm font-medium text-destructive">
+                REC {formatDuration(recordingDuration)}
+              </span>
+            </div>
+            <div className="h-6 w-px bg-meeting-border" />
+          </>
+        )}
         <div className="flex items-center gap-2 text-meeting-muted">
           <Shield className="h-4 w-4 text-accent" />
           <span className="text-sm">End-to-end encrypted</span>
