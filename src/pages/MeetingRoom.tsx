@@ -6,20 +6,31 @@ import { VideoGrid } from "@/components/meeting/VideoGrid";
 import { ChatPanel } from "@/components/meeting/ChatPanel";
 import { ParticipantsPanel } from "@/components/meeting/ParticipantsPanel";
 import { TranscriptPanel } from "@/components/meeting/TranscriptPanel";
+import { MeetingSummaryPanel } from "@/components/meeting/MeetingSummaryPanel";
+import { BackgroundSettingsDialog } from "@/components/meeting/BackgroundSettingsDialog";
 import { useWebRTC } from "@/hooks/useWebRTC";
 import { useTranscription } from "@/hooks/useTranscription";
+import { useMeetingRecording } from "@/hooks/useMeetingRecording";
+import { useBackgroundEffects, BackgroundEffect } from "@/hooks/useBackgroundEffects";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { useMeetings } from "@/hooks/useMeetings";
 
 export default function MeetingRoom() {
   const navigate = useNavigate();
   const { meetingId } = useParams();
   const { user, loading } = useAuth();
   const { toast } = useToast();
+  const { getMeetingByCode } = useMeetings();
   
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isParticipantsOpen, setIsParticipantsOpen] = useState(false);
   const [isCaptionsOn, setIsCaptionsOn] = useState(false);
+  const [isSummaryOpen, setIsSummaryOpen] = useState(false);
+  const [isBackgroundDialogOpen, setIsBackgroundDialogOpen] = useState(false);
+  const [backgroundEffect, setBackgroundEffect] = useState<BackgroundEffect>("none");
+  const [virtualBackgroundUrl, setVirtualBackgroundUrl] = useState<string>();
+  const [dbMeetingId, setDbMeetingId] = useState<string | null>(null);
 
   const {
     participants,
@@ -42,6 +53,32 @@ export default function MeetingRoom() {
     startTranscription,
     stopTranscription,
   } = useTranscription(meetingId || "", isCaptionsOn);
+
+  const {
+    isRecording,
+    duration: recordingDuration,
+    startRecording,
+    stopRecording,
+  } = useMeetingRecording(dbMeetingId || meetingId || "");
+
+  const { processedStream } = useBackgroundEffects({
+    stream: localStream,
+    effect: backgroundEffect,
+    virtualBackgroundUrl,
+  });
+
+  // Fetch database meeting ID from meeting code
+  useEffect(() => {
+    const fetchMeetingId = async () => {
+      if (meetingId) {
+        const { data } = await getMeetingByCode(meetingId);
+        if (data) {
+          setDbMeetingId(data.id);
+        }
+      }
+    };
+    fetchMeetingId();
+  }, [meetingId, getMeetingByCode]);
 
   // Join meeting on mount
   useEffect(() => {
@@ -79,6 +116,9 @@ export default function MeetingRoom() {
   }, [isCaptionsOn, localStream, user, startTranscription, stopTranscription]);
 
   const handleLeaveMeeting = async () => {
+    if (isRecording) {
+      stopRecording();
+    }
     await leaveMeeting();
     navigate("/dashboard");
   };
@@ -95,6 +135,24 @@ export default function MeetingRoom() {
     setIsCaptionsOn(!isCaptionsOn);
   };
 
+  const handleToggleRecording = () => {
+    if (isRecording) {
+      stopRecording();
+    } else {
+      // Collect all available streams
+      const streams = participants
+        .filter((p) => p.stream)
+        .map((p) => p.stream!);
+      if (localStream) streams.push(localStream);
+      startRecording(streams);
+    }
+  };
+
+  const handleSelectBackground = (effect: BackgroundEffect, url?: string) => {
+    setBackgroundEffect(effect);
+    setVirtualBackgroundUrl(url);
+  };
+
   // Convert participants to the format VideoGrid expects
   const gridParticipants = participants.map((p) => ({
     id: p.id,
@@ -106,7 +164,7 @@ export default function MeetingRoom() {
     isHost: p.isHost,
     isSpeaking: p.isSpeaking,
     isScreenShare: p.isScreenShare,
-    stream: p.stream,
+    stream: p.isLocal && processedStream ? processedStream : p.stream,
   }));
 
   // Show loading state
@@ -126,6 +184,8 @@ export default function MeetingRoom() {
       <MeetingHeader
         meetingId={meetingId || "abc-defg-hij"}
         meetingTitle="Video Meeting"
+        isRecording={isRecording}
+        recordingDuration={recordingDuration}
       />
 
       <div className="flex flex-1 overflow-hidden">
@@ -142,12 +202,17 @@ export default function MeetingRoom() {
               isChatOpen={isChatOpen}
               isParticipantsOpen={isParticipantsOpen}
               isCaptionsOn={isCaptionsOn}
+              isRecording={isRecording}
+              isSummaryOpen={isSummaryOpen}
               onToggleMute={toggleMute}
               onToggleVideo={toggleVideo}
               onToggleScreenShare={handleToggleScreenShare}
               onToggleChat={() => setIsChatOpen(!isChatOpen)}
               onToggleParticipants={() => setIsParticipantsOpen(!isParticipantsOpen)}
               onToggleCaptions={handleToggleCaptions}
+              onToggleRecording={handleToggleRecording}
+              onToggleSummary={() => setIsSummaryOpen(!isSummaryOpen)}
+              onOpenBackgroundSettings={() => setIsBackgroundDialogOpen(true)}
               onLeaveMeeting={handleLeaveMeeting}
             />
           </div>
@@ -169,7 +234,22 @@ export default function MeetingRoom() {
             onClose={() => setIsCaptionsOn(false)}
           />
         )}
+
+        {isSummaryOpen && dbMeetingId && (
+          <MeetingSummaryPanel
+            meetingId={dbMeetingId}
+            onClose={() => setIsSummaryOpen(false)}
+          />
+        )}
       </div>
+
+      <BackgroundSettingsDialog
+        open={isBackgroundDialogOpen}
+        onOpenChange={setIsBackgroundDialogOpen}
+        currentEffect={backgroundEffect}
+        currentBackground={virtualBackgroundUrl}
+        onSelectEffect={handleSelectBackground}
+      />
     </div>
   );
 }

@@ -13,6 +13,7 @@ import {
   LogOut,
   User,
   Settings,
+  Mail,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,8 +29,18 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useMeetings } from "@/hooks/useMeetings";
+import { useMeetingInvitations } from "@/hooks/useMeetingInvitations";
 import { ScheduleMeetingDialog } from "@/components/dashboard/ScheduleMeetingDialog";
 import { JoinMeetingDialog } from "@/components/dashboard/JoinMeetingDialog";
+import { InviteParticipantsDialog } from "@/components/meeting/InviteParticipantsDialog";
+
+interface Meeting {
+  id: string;
+  meeting_code: string;
+  title: string;
+  scheduled_at: string | null;
+  status: string;
+}
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -38,6 +49,10 @@ export default function Dashboard() {
   const { meetings, loading, createMeeting, deleteMeeting, updateMeetingStatus } = useMeetings();
   const [isScheduleOpen, setIsScheduleOpen] = useState(false);
   const [isJoinOpen, setIsJoinOpen] = useState(false);
+  const [isInviteOpen, setIsInviteOpen] = useState(false);
+  const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
+
+  const invitations = useMeetingInvitations(selectedMeeting?.id || "");
 
   useEffect(() => {
     if (!user) {
@@ -90,6 +105,24 @@ export default function Dashboard() {
     }
   };
 
+  const handleInvite = (meeting: Meeting) => {
+    setSelectedMeeting(meeting);
+    setIsInviteOpen(true);
+  };
+
+  const handleSendInvitations = async (emails: string[]) => {
+    if (!selectedMeeting) return;
+    
+    for (const email of emails) {
+      await invitations.sendInvitation(
+        email,
+        selectedMeeting.title,
+        selectedMeeting.meeting_code,
+        selectedMeeting.scheduled_at || undefined
+      );
+    }
+  };
+
   const handleSignOut = async () => {
     await signOut();
     navigate("/");
@@ -105,7 +138,7 @@ export default function Dashboard() {
 
   const getStatusBadge = (status: string, scheduledAt: string | null) => {
     if (status === "active") {
-      return <Badge className="bg-green-500 hover:bg-green-600">Live</Badge>;
+      return <Badge className="bg-accent hover:bg-accent/90">Live</Badge>;
     }
     if (status === "ended") {
       return <Badge variant="secondary">Ended</Badge>;
@@ -313,6 +346,14 @@ export default function Dashboard() {
                       {getStatusBadge(meeting.status, meeting.scheduled_at)}
                       <Button
                         size="sm"
+                        variant="outline"
+                        onClick={() => handleInvite(meeting)}
+                      >
+                        <Mail className="mr-2 h-4 w-4" />
+                        Invite
+                      </Button>
+                      <Button
+                        size="sm"
                         onClick={() => handleJoinMeeting(meeting.meeting_code)}
                       >
                         Join
@@ -438,6 +479,18 @@ export default function Dashboard() {
         onOpenChange={setIsJoinOpen}
         onJoin={handleJoinMeeting}
       />
+
+      {selectedMeeting && (
+        <InviteParticipantsDialog
+          open={isInviteOpen}
+          onOpenChange={setIsInviteOpen}
+          meetingTitle={selectedMeeting.title}
+          meetingCode={selectedMeeting.meeting_code}
+          scheduledAt={selectedMeeting.scheduled_at || undefined}
+          onSendInvitations={handleSendInvitations}
+          isSending={invitations.isSending}
+        />
+      )}
     </div>
   );
 }
