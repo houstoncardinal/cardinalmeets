@@ -8,10 +8,15 @@ import { ParticipantsPanel } from "@/components/meeting/ParticipantsPanel";
 import { TranscriptPanel } from "@/components/meeting/TranscriptPanel";
 import { MeetingSummaryPanel } from "@/components/meeting/MeetingSummaryPanel";
 import { BackgroundSettingsDialog } from "@/components/meeting/BackgroundSettingsDialog";
+import { BreakoutRoomsDialog } from "@/components/meeting/BreakoutRoomsDialog";
+import { WaitingRoomPanel } from "@/components/meeting/WaitingRoomPanel";
+import { WaitingScreen } from "@/components/meeting/WaitingScreen";
 import { useWebRTC } from "@/hooks/useWebRTC";
 import { useTranscription } from "@/hooks/useTranscription";
 import { useMeetingRecording } from "@/hooks/useMeetingRecording";
 import { useBackgroundEffects, BackgroundEffect } from "@/hooks/useBackgroundEffects";
+import { useBreakoutRooms } from "@/hooks/useBreakoutRooms";
+import { useWaitingRoom } from "@/hooks/useWaitingRoom";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useMeetings } from "@/hooks/useMeetings";
@@ -28,9 +33,12 @@ export default function MeetingRoom() {
   const [isCaptionsOn, setIsCaptionsOn] = useState(false);
   const [isSummaryOpen, setIsSummaryOpen] = useState(false);
   const [isBackgroundDialogOpen, setIsBackgroundDialogOpen] = useState(false);
+  const [isBreakoutRoomsOpen, setIsBreakoutRoomsOpen] = useState(false);
+  const [isWaitingRoomOpen, setIsWaitingRoomOpen] = useState(false);
   const [backgroundEffect, setBackgroundEffect] = useState<BackgroundEffect>("none");
   const [virtualBackgroundUrl, setVirtualBackgroundUrl] = useState<string>();
   const [dbMeetingId, setDbMeetingId] = useState<string | null>(null);
+  const [isHost, setIsHost] = useState(false);
 
   const {
     participants,
@@ -67,6 +75,27 @@ export default function MeetingRoom() {
     virtualBackgroundUrl,
   });
 
+  // Breakout rooms hook
+  const {
+    rooms: breakoutRooms,
+    createRoom,
+    deleteRoom,
+    assignParticipant,
+    removeParticipant,
+    closeAllRooms,
+  } = useBreakoutRooms(dbMeetingId || "");
+
+  // Waiting room hook
+  const {
+    waitingParticipants,
+    myStatus,
+    isWaitingRoomEnabled,
+    admitParticipant,
+    rejectParticipant,
+    admitAll,
+    toggleWaitingRoom,
+  } = useWaitingRoom(dbMeetingId || "", isHost);
+
   // Fetch database meeting ID from meeting code
   useEffect(() => {
     const fetchMeetingId = async () => {
@@ -74,11 +103,15 @@ export default function MeetingRoom() {
         const { data } = await getMeetingByCode(meetingId);
         if (data) {
           setDbMeetingId(data.id);
+          // Check if current user is the host
+          if (user && data.host_id === user.id) {
+            setIsHost(true);
+          }
         }
       }
     };
     fetchMeetingId();
-  }, [meetingId, getMeetingByCode]);
+  }, [meetingId, getMeetingByCode, user]);
 
   // Join meeting on mount
   useEffect(() => {
@@ -167,6 +200,38 @@ export default function MeetingRoom() {
     stream: p.isLocal && processedStream ? processedStream : p.stream,
   }));
 
+  // Show waiting screen if user is in waiting room
+  if (myStatus === "waiting") {
+    return (
+      <WaitingScreen
+        meetingTitle="Video Meeting"
+        onLeave={handleLeaveMeeting}
+      />
+    );
+  }
+
+  // Show rejected message
+  if (myStatus === "rejected") {
+    return (
+      <div className="flex h-screen items-center justify-center bg-meeting-bg">
+        <div className="flex flex-col items-center gap-4 text-center">
+          <p className="text-xl font-semibold text-meeting-text">
+            Your request to join was declined
+          </p>
+          <p className="text-meeting-text-muted">
+            The host did not admit you to the meeting.
+          </p>
+          <button
+            onClick={() => navigate("/dashboard")}
+            className="mt-4 text-primary hover:underline"
+          >
+            Return to dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   // Show loading state
   if (loading || (!isConnected && user)) {
     return (
@@ -204,6 +269,10 @@ export default function MeetingRoom() {
               isCaptionsOn={isCaptionsOn}
               isRecording={isRecording}
               isSummaryOpen={isSummaryOpen}
+              isBreakoutRoomsOpen={isBreakoutRoomsOpen}
+              isWaitingRoomOpen={isWaitingRoomOpen}
+              waitingCount={waitingParticipants.length}
+              isHost={isHost}
               onToggleMute={toggleMute}
               onToggleVideo={toggleVideo}
               onToggleScreenShare={handleToggleScreenShare}
@@ -212,6 +281,8 @@ export default function MeetingRoom() {
               onToggleCaptions={handleToggleCaptions}
               onToggleRecording={handleToggleRecording}
               onToggleSummary={() => setIsSummaryOpen(!isSummaryOpen)}
+              onToggleBreakoutRooms={() => setIsBreakoutRoomsOpen(true)}
+              onToggleWaitingRoom={() => setIsWaitingRoomOpen(!isWaitingRoomOpen)}
               onOpenBackgroundSettings={() => setIsBackgroundDialogOpen(true)}
               onLeaveMeeting={handleLeaveMeeting}
             />
@@ -241,6 +312,18 @@ export default function MeetingRoom() {
             onClose={() => setIsSummaryOpen(false)}
           />
         )}
+
+        {isWaitingRoomOpen && isHost && (
+          <WaitingRoomPanel
+            waitingParticipants={waitingParticipants}
+            isWaitingRoomEnabled={isWaitingRoomEnabled}
+            onAdmit={admitParticipant}
+            onReject={rejectParticipant}
+            onAdmitAll={admitAll}
+            onToggleWaitingRoom={toggleWaitingRoom}
+            onClose={() => setIsWaitingRoomOpen(false)}
+          />
+        )}
       </div>
 
       <BackgroundSettingsDialog
@@ -249,6 +332,24 @@ export default function MeetingRoom() {
         currentEffect={backgroundEffect}
         currentBackground={virtualBackgroundUrl}
         onSelectEffect={handleSelectBackground}
+      />
+
+      <BreakoutRoomsDialog
+        open={isBreakoutRoomsOpen}
+        onOpenChange={setIsBreakoutRoomsOpen}
+        rooms={breakoutRooms}
+        participants={gridParticipants.map((p) => ({
+          id: p.id,
+          name: p.name,
+          initials: p.initials,
+          isLocal: p.isLocal,
+        }))}
+        onCreateRoom={async (name) => { await createRoom(name); }}
+        onDeleteRoom={deleteRoom}
+        onAssignParticipant={assignParticipant}
+        onRemoveParticipant={removeParticipant}
+        onCloseAllRooms={closeAllRooms}
+        isHost={isHost}
       />
     </div>
   );
