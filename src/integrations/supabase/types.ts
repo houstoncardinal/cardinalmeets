@@ -14,6 +14,70 @@ export type Database = {
   }
   public: {
     Tables: {
+      breakout_room_participants: {
+        Row: {
+          breakout_room_id: string
+          id: string
+          joined_at: string
+          left_at: string | null
+          user_id: string
+        }
+        Insert: {
+          breakout_room_id: string
+          id?: string
+          joined_at?: string
+          left_at?: string | null
+          user_id: string
+        }
+        Update: {
+          breakout_room_id?: string
+          id?: string
+          joined_at?: string
+          left_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "breakout_room_participants_breakout_room_id_fkey"
+            columns: ["breakout_room_id"]
+            isOneToOne: false
+            referencedRelation: "breakout_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      breakout_rooms: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          meeting_id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          meeting_id: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          meeting_id?: string
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "breakout_rooms_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chat_messages: {
         Row: {
           content: string
@@ -95,6 +159,7 @@ export type Database = {
           meeting_id: string
           role: Database["public"]["Enums"]["participant_role"]
           user_id: string
+          waiting_room_status: string | null
         }
         Insert: {
           created_at?: string
@@ -106,6 +171,7 @@ export type Database = {
           meeting_id: string
           role?: Database["public"]["Enums"]["participant_role"]
           user_id: string
+          waiting_room_status?: string | null
         }
         Update: {
           created_at?: string
@@ -117,6 +183,7 @@ export type Database = {
           meeting_id?: string
           role?: Database["public"]["Enums"]["participant_role"]
           user_id?: string
+          waiting_room_status?: string | null
         }
         Relationships: [
           {

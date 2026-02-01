@@ -20,6 +20,8 @@ import {
   CircleStop,
   Sparkles,
   Image,
+  LayoutGrid,
+  Clock,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -28,6 +30,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Badge } from "@/components/ui/badge";
 
 interface MeetingControlsProps {
   isMuted: boolean;
@@ -38,6 +41,10 @@ interface MeetingControlsProps {
   isCaptionsOn: boolean;
   isRecording: boolean;
   isSummaryOpen: boolean;
+  isBreakoutRoomsOpen?: boolean;
+  isWaitingRoomOpen?: boolean;
+  waitingCount?: number;
+  isHost?: boolean;
   onToggleMute: () => void;
   onToggleVideo: () => void;
   onToggleScreenShare: () => void;
@@ -46,6 +53,8 @@ interface MeetingControlsProps {
   onToggleCaptions: () => void;
   onToggleRecording: () => void;
   onToggleSummary: () => void;
+  onToggleBreakoutRooms?: () => void;
+  onToggleWaitingRoom?: () => void;
   onOpenBackgroundSettings: () => void;
   onLeaveMeeting: () => void;
 }
@@ -59,6 +68,10 @@ export function MeetingControls({
   isCaptionsOn,
   isRecording,
   isSummaryOpen,
+  isBreakoutRoomsOpen,
+  isWaitingRoomOpen,
+  waitingCount = 0,
+  isHost = false,
   onToggleMute,
   onToggleVideo,
   onToggleScreenShare,
@@ -67,6 +80,8 @@ export function MeetingControls({
   onToggleCaptions,
   onToggleRecording,
   onToggleSummary,
+  onToggleBreakoutRooms,
+  onToggleWaitingRoom,
   onOpenBackgroundSettings,
   onLeaveMeeting,
 }: MeetingControlsProps) {
@@ -185,6 +200,45 @@ export function MeetingControls({
         onClick={onToggleSummary}
         variant={isSummaryOpen ? "accent" : "default"}
       />
+
+      {isHost && onToggleBreakoutRooms && (
+        <ControlButton
+          icon={LayoutGrid}
+          label="Breakout Rooms"
+          onClick={onToggleBreakoutRooms}
+          variant={isBreakoutRoomsOpen ? "accent" : "default"}
+        />
+      )}
+
+      {isHost && onToggleWaitingRoom && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="lg"
+              onClick={onToggleWaitingRoom}
+              className={`relative h-12 w-12 rounded-full p-0 transition-all ${
+                isWaitingRoomOpen
+                  ? "bg-primary hover:bg-primary/90 text-primary-foreground"
+                  : "bg-meeting-card hover:bg-meeting-border text-meeting-text"
+              }`}
+            >
+              <Clock className="h-5 w-5" />
+              {waitingCount > 0 && (
+                <Badge
+                  variant="destructive"
+                  className="absolute -right-1 -top-1 h-5 w-5 rounded-full p-0 text-xs flex items-center justify-center"
+                >
+                  {waitingCount}
+                </Badge>
+              )}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Waiting Room {waitingCount > 0 && `(${waitingCount})`}</p>
+          </TooltipContent>
+        </Tooltip>
+      )}
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
