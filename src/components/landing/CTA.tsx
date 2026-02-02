@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Video } from "lucide-react";
+import { ArrowRight, Calendar } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 export function CTA() {
@@ -11,18 +11,26 @@ export function CTA() {
   };
 
   return (
-    <section className="py-20">
+    <section className="py-24 md:py-32">
       <div className="container px-4">
-        <div className="relative mx-auto max-w-4xl overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-primary/80 p-8 text-center md:p-16">
-          <div className="absolute inset-0 bg-grid-pattern opacity-10" />
+        <div className="relative mx-auto max-w-5xl overflow-hidden rounded-3xl bg-primary p-12 text-center md:p-20">
+          {/* Decorative elements */}
+          <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary to-primary/90" />
+          <div className="absolute left-0 top-0 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary-foreground/10 blur-3xl" />
+          <div className="absolute right-0 bottom-0 h-64 w-64 translate-x-1/2 translate-y-1/2 rounded-full bg-primary-foreground/10 blur-3xl" />
 
           <div className="relative z-10">
-            <h2 className="mb-4 text-3xl font-bold text-primary-foreground md:text-4xl">
-              Ready to transform your meetings?
+            <p className="mb-4 text-sm font-medium uppercase tracking-widest text-primary-foreground/80">
+              Experience the difference
+            </p>
+            <h2 className="mb-6 text-4xl font-bold text-primary-foreground md:text-5xl lg:text-6xl">
+              Elevate your enterprise
+              <br />
+              communications
             </h2>
-            <p className="mx-auto mb-8 max-w-xl text-lg text-primary-foreground/80">
-              Join millions of teams already using MeetFlow for seamless
-              collaboration.
+            <p className="mx-auto mb-10 max-w-2xl text-xl text-primary-foreground/80">
+              Join the world's leading organizations who trust Cardinal Meets
+              for their most critical communications.
             </p>
 
             <div className="flex flex-col items-center justify-center gap-4 md:flex-row">
@@ -30,18 +38,18 @@ export function CTA() {
                 size="lg"
                 variant="secondary"
                 onClick={handleNewMeeting}
-                className="gap-2"
+                className="h-14 gap-3 px-8 text-base"
               >
-                <Video className="h-5 w-5" />
-                Start Free Today
+                <Calendar className="h-5 w-5" />
+                Schedule a Demo
               </Button>
               <Button
                 size="lg"
                 variant="ghost"
-                className="gap-2 text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground"
+                className="h-14 gap-3 px-8 text-base text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground"
               >
                 Contact Sales
-                <ArrowRight className="h-4 w-4" />
+                <ArrowRight className="h-5 w-5" />
               </Button>
             </div>
           </div>

@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Video, Menu } from "lucide-react";
+import { Menu } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -11,24 +11,43 @@ export function Header() {
   const { user } = useAuth();
 
   const navItems = [
-    { label: "Features", href: "#features" },
+    { label: "Platform", href: "#features" },
     { label: "Solutions", href: "#solutions" },
-    { label: "Pricing", href: "#pricing" },
     { label: "Enterprise", href: "#enterprise" },
+    { label: "Security", href: "#security" },
   ];
 
   return (
-    <header className="fixed left-0 right-0 top-0 z-50 border-b border-border bg-background/80 backdrop-blur-lg">
-      <div className="container flex h-16 items-center justify-between px-4">
-        <div className="flex items-center gap-8">
-          <a href="/" className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
-              <Video className="h-5 w-5 text-primary-foreground" />
+    <header className="fixed left-0 right-0 top-0 z-50 border-b border-border/50 bg-background/95 backdrop-blur-xl">
+      <div className="container flex h-20 items-center justify-between px-4">
+        <div className="flex items-center gap-12">
+          <a href="/" className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary shadow-lg">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                className="h-6 w-6 text-primary-foreground"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                <path d="M2 17l10 5 10-5" />
+                <path d="M2 12l10 5 10-5" />
+              </svg>
             </div>
-            <span className="text-xl font-bold text-foreground">MeetFlow</span>
+            <div className="flex flex-col">
+              <span className="text-xl font-bold tracking-tight text-foreground">
+                Cardinal
+              </span>
+              <span className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
+                Meets
+              </span>
+            </div>
           </a>
 
-          <nav className="hidden items-center gap-6 md:flex">
+          <nav className="hidden items-center gap-8 lg:flex">
             {navItems.map((item) => (
               <a
                 key={item.label}
@@ -41,21 +60,29 @@ export function Header() {
           </nav>
         </div>
 
-        <div className="hidden items-center gap-3 md:flex">
+        <div className="hidden items-center gap-4 lg:flex">
           {user ? (
-            <Button onClick={() => navigate("/dashboard")}>Dashboard</Button>
+            <Button onClick={() => navigate("/dashboard")} size="lg">
+              Dashboard
+            </Button>
           ) : (
             <>
-              <Button variant="ghost" onClick={() => navigate("/auth")}>
+              <Button
+                variant="ghost"
+                onClick={() => navigate("/auth")}
+                className="text-sm font-medium"
+              >
                 Sign in
               </Button>
-              <Button onClick={() => navigate("/auth")}>Get Started Free</Button>
+              <Button onClick={() => navigate("/auth")} size="lg">
+                Request Demo
+              </Button>
             </>
           )}
         </div>
 
         <Sheet open={isOpen} onOpenChange={setIsOpen}>
-          <SheetTrigger asChild className="md:hidden">
+          <SheetTrigger asChild className="lg:hidden">
             <Button variant="ghost" size="icon">
               <Menu className="h-5 w-5" />
             </Button>
@@ -72,7 +99,7 @@ export function Header() {
                   {item.label}
                 </a>
               ))}
-              <div className="mt-4 flex flex-col gap-2">
+              <div className="mt-6 flex flex-col gap-3">
                 {user ? (
                   <Button
                     className="w-full"
@@ -102,7 +129,7 @@ export function Header() {
                         setIsOpen(false);
                       }}
                     >
-                      Get Started Free
+                      Request Demo
                     </Button>
                   </>
                 )}
