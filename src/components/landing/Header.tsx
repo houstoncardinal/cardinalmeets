@@ -12,7 +12,7 @@ export function Header() {
 
   const navItems = [
     { label: "Platform", href: "#features" },
-    { label: "Solutions", href: "#solutions" },
+    { label: "Pricing", href: "/pricing" },
     { label: "Enterprise", href: "#enterprise" },
     { label: "Security", href: "#security" },
   ];
