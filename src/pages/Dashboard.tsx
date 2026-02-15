@@ -172,11 +172,15 @@ export default function Dashboard() {
       {/* Header */}
       <header className="border-b border-border bg-card">
         <div className="container flex h-16 items-center justify-between px-4">
-          <a href="/" className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
-              <Video className="h-5 w-5 text-primary-foreground" />
+          <a href="/" className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary shadow-lg">
+              <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5 text-primary-foreground" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                <path d="M2 17l10 5 10-5" />
+                <path d="M2 12l10 5 10-5" />
+              </svg>
             </div>
-            <span className="text-xl font-bold text-foreground">MeetFlow</span>
+            <span className="text-xl font-bold text-foreground">Cardinal Meets</span>
           </a>
 
           <DropdownMenu>
@@ -204,11 +208,11 @@ export default function Dashboard() {
                 </div>
               </div>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate("/settings")}>
                 <User className="mr-2 h-4 w-4" />
                 Profile
               </DropdownMenuItem>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate("/settings")}>
                 <Settings className="mr-2 h-4 w-4" />
                 Settings
               </DropdownMenuItem>
