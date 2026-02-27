@@ -11,12 +11,18 @@ import { BackgroundSettingsDialog } from "@/components/meeting/BackgroundSetting
 import { BreakoutRoomsDialog } from "@/components/meeting/BreakoutRoomsDialog";
 import { WaitingRoomPanel } from "@/components/meeting/WaitingRoomPanel";
 import { WaitingScreen } from "@/components/meeting/WaitingScreen";
+import { PollsPanel } from "@/components/meeting/PollsPanel";
+import { QAPanel } from "@/components/meeting/QAPanel";
+import { ReactionsOverlay } from "@/components/meeting/ReactionsOverlay";
+import { ReactionsPicker } from "@/components/meeting/ReactionsPicker";
 import { useWebRTC } from "@/hooks/useWebRTC";
 import { useTranscription } from "@/hooks/useTranscription";
 import { useMeetingRecording } from "@/hooks/useMeetingRecording";
 import { useBackgroundEffects, BackgroundEffect } from "@/hooks/useBackgroundEffects";
 import { useBreakoutRooms } from "@/hooks/useBreakoutRooms";
 import { useWaitingRoom } from "@/hooks/useWaitingRoom";
+import { useNoiseSuppression } from "@/hooks/useNoiseSuppression";
+import { useReactions } from "@/hooks/useReactions";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useMeetings } from "@/hooks/useMeetings";
@@ -27,7 +33,8 @@ export default function MeetingRoom() {
   const { user, loading } = useAuth();
   const { toast } = useToast();
   const { getMeetingByCode } = useMeetings();
-  
+
+  // Panel state
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isParticipantsOpen, setIsParticipantsOpen] = useState(false);
   const [isCaptionsOn, setIsCaptionsOn] = useState(false);
@@ -35,10 +42,15 @@ export default function MeetingRoom() {
   const [isBackgroundDialogOpen, setIsBackgroundDialogOpen] = useState(false);
   const [isBreakoutRoomsOpen, setIsBreakoutRoomsOpen] = useState(false);
   const [isWaitingRoomOpen, setIsWaitingRoomOpen] = useState(false);
+  const [isPollsOpen, setIsPollsOpen] = useState(false);
+  const [isQAOpen, setIsQAOpen] = useState(false);
+
+  // Settings state
   const [backgroundEffect, setBackgroundEffect] = useState<BackgroundEffect>("none");
   const [virtualBackgroundUrl, setVirtualBackgroundUrl] = useState<string>();
   const [dbMeetingId, setDbMeetingId] = useState<string | null>(null);
   const [isHost, setIsHost] = useState(false);
+  const [noiseSuppressionEnabled, setNoiseSuppressionEnabled] = useState(true);
 
   const {
     participants,
@@ -46,6 +58,7 @@ export default function MeetingRoom() {
     isVideoOn,
     isScreenSharing,
     isConnected,
+    connectionHealth,
     joinMeeting,
     leaveMeeting,
     toggleMute,
@@ -54,6 +67,11 @@ export default function MeetingRoom() {
     stopScreenShare,
     localStream,
   } = useWebRTC(meetingId || "");
+
+  const { processedStream: noiseSuppressedStream } = useNoiseSuppression({
+    stream: localStream,
+    enabled: noiseSuppressionEnabled,
+  });
 
   const {
     transcripts,
@@ -70,12 +88,11 @@ export default function MeetingRoom() {
   } = useMeetingRecording(dbMeetingId || meetingId || "");
 
   const { processedStream } = useBackgroundEffects({
-    stream: localStream,
+    stream: noiseSuppressedStream,
     effect: backgroundEffect,
     virtualBackgroundUrl,
   });
 
-  // Breakout rooms hook
   const {
     rooms: breakoutRooms,
     createRoom,
@@ -85,7 +102,6 @@ export default function MeetingRoom() {
     closeAllRooms,
   } = useBreakoutRooms(dbMeetingId || "");
 
-  // Waiting room hook
   const {
     waitingParticipants,
     myStatus,
@@ -96,6 +112,8 @@ export default function MeetingRoom() {
     toggleWaitingRoom,
   } = useWaitingRoom(dbMeetingId || "", isHost);
 
+  const { activeReactions, sendReaction, REACTION_EMOJIS } = useReactions(dbMeetingId || "");
+
   // Fetch database meeting ID from meeting code
   useEffect(() => {
     const fetchMeetingId = async () => {
@@ -103,7 +121,6 @@ export default function MeetingRoom() {
         const { data } = await getMeetingByCode(meetingId);
         if (data) {
           setDbMeetingId(data.id);
-          // Check if current user is the host
           if (user && data.host_id === user.id) {
             setIsHost(true);
           }
@@ -149,33 +166,21 @@ export default function MeetingRoom() {
   }, [isCaptionsOn, localStream, user, startTranscription, stopTranscription]);
 
   const handleLeaveMeeting = async () => {
-    if (isRecording) {
-      stopRecording();
-    }
+    if (isRecording) stopRecording();
     await leaveMeeting();
     navigate("/dashboard");
   };
 
   const handleToggleScreenShare = () => {
-    if (isScreenSharing) {
-      stopScreenShare();
-    } else {
-      startScreenShare();
-    }
-  };
-
-  const handleToggleCaptions = () => {
-    setIsCaptionsOn(!isCaptionsOn);
+    if (isScreenSharing) stopScreenShare();
+    else startScreenShare();
   };
 
   const handleToggleRecording = () => {
     if (isRecording) {
       stopRecording();
     } else {
-      // Collect all available streams
-      const streams = participants
-        .filter((p) => p.stream)
-        .map((p) => p.stream!);
+      const streams = participants.filter((p) => p.stream).map((p) => p.stream!);
       if (localStream) streams.push(localStream);
       startRecording(streams);
     }
@@ -202,12 +207,7 @@ export default function MeetingRoom() {
 
   // Show waiting screen if user is in waiting room
   if (myStatus === "waiting") {
-    return (
-      <WaitingScreen
-        meetingTitle="Video Meeting"
-        onLeave={handleLeaveMeeting}
-      />
-    );
+    return <WaitingScreen meetingTitle="Video Meeting" onLeave={handleLeaveMeeting} />;
   }
 
   // Show rejected message
@@ -215,16 +215,9 @@ export default function MeetingRoom() {
     return (
       <div className="flex h-screen items-center justify-center bg-meeting-bg">
         <div className="flex flex-col items-center gap-4 text-center">
-          <p className="text-xl font-semibold text-meeting-text">
-            Your request to join was declined
-          </p>
-          <p className="text-meeting-text-muted">
-            The host did not admit you to the meeting.
-          </p>
-          <button
-            onClick={() => navigate("/dashboard")}
-            className="mt-4 text-primary hover:underline"
-          >
+          <p className="text-xl font-semibold text-meeting-text">Your request to join was declined</p>
+          <p className="text-meeting-text-muted">The host did not admit you to the meeting.</p>
+          <button onClick={() => navigate("/dashboard")} className="mt-4 text-primary hover:underline">
             Return to dashboard
           </button>
         </div>
@@ -246,11 +239,15 @@ export default function MeetingRoom() {
 
   return (
     <div className="flex h-screen flex-col bg-meeting-bg">
+      <ReactionsOverlay reactions={activeReactions} />
+
       <MeetingHeader
         meetingId={meetingId || "abc-defg-hij"}
         meetingTitle="Video Meeting"
         isRecording={isRecording}
         recordingDuration={recordingDuration}
+        connectionQuality={connectionHealth.quality}
+        connectionLatency={connectionHealth.latency}
       />
 
       <div className="flex flex-1 overflow-hidden">
@@ -259,7 +256,7 @@ export default function MeetingRoom() {
             <VideoGrid participants={gridParticipants} />
           </div>
 
-          <div className="flex justify-center pb-6">
+          <div className="flex items-center justify-center gap-2 pb-6">
             <MeetingControls
               isMuted={isMuted}
               isVideoOn={isVideoOn}
@@ -271,6 +268,8 @@ export default function MeetingRoom() {
               isSummaryOpen={isSummaryOpen}
               isBreakoutRoomsOpen={isBreakoutRoomsOpen}
               isWaitingRoomOpen={isWaitingRoomOpen}
+              isPollsOpen={isPollsOpen}
+              isQAOpen={isQAOpen}
               waitingCount={waitingParticipants.length}
               isHost={isHost}
               onToggleMute={toggleMute}
@@ -278,14 +277,17 @@ export default function MeetingRoom() {
               onToggleScreenShare={handleToggleScreenShare}
               onToggleChat={() => setIsChatOpen(!isChatOpen)}
               onToggleParticipants={() => setIsParticipantsOpen(!isParticipantsOpen)}
-              onToggleCaptions={handleToggleCaptions}
+              onToggleCaptions={() => setIsCaptionsOn(!isCaptionsOn)}
               onToggleRecording={handleToggleRecording}
               onToggleSummary={() => setIsSummaryOpen(!isSummaryOpen)}
               onToggleBreakoutRooms={() => setIsBreakoutRoomsOpen(true)}
               onToggleWaitingRoom={() => setIsWaitingRoomOpen(!isWaitingRoomOpen)}
+              onTogglePolls={() => setIsPollsOpen(!isPollsOpen)}
+              onToggleQA={() => setIsQAOpen(!isQAOpen)}
               onOpenBackgroundSettings={() => setIsBackgroundDialogOpen(true)}
               onLeaveMeeting={handleLeaveMeeting}
             />
+            <ReactionsPicker onReact={sendReaction} emojis={REACTION_EMOJIS} />
           </div>
         </div>
 
@@ -307,10 +309,7 @@ export default function MeetingRoom() {
         )}
 
         {isSummaryOpen && dbMeetingId && (
-          <MeetingSummaryPanel
-            meetingId={dbMeetingId}
-            onClose={() => setIsSummaryOpen(false)}
-          />
+          <MeetingSummaryPanel meetingId={dbMeetingId} onClose={() => setIsSummaryOpen(false)} />
         )}
 
         {isWaitingRoomOpen && isHost && (
@@ -323,6 +322,14 @@ export default function MeetingRoom() {
             onToggleWaitingRoom={toggleWaitingRoom}
             onClose={() => setIsWaitingRoomOpen(false)}
           />
+        )}
+
+        {isPollsOpen && dbMeetingId && (
+          <PollsPanel meetingId={dbMeetingId} isHost={isHost} onClose={() => setIsPollsOpen(false)} />
+        )}
+
+        {isQAOpen && dbMeetingId && (
+          <QAPanel meetingId={dbMeetingId} isHost={isHost} onClose={() => setIsQAOpen(false)} />
         )}
       </div>
 

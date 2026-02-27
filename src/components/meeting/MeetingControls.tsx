@@ -22,6 +22,8 @@ import {
   Image,
   LayoutGrid,
   Clock,
+  BarChart3,
+  HelpCircle,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -43,6 +45,8 @@ interface MeetingControlsProps {
   isSummaryOpen: boolean;
   isBreakoutRoomsOpen?: boolean;
   isWaitingRoomOpen?: boolean;
+  isPollsOpen?: boolean;
+  isQAOpen?: boolean;
   waitingCount?: number;
   isHost?: boolean;
   onToggleMute: () => void;
@@ -55,6 +59,8 @@ interface MeetingControlsProps {
   onToggleSummary: () => void;
   onToggleBreakoutRooms?: () => void;
   onToggleWaitingRoom?: () => void;
+  onTogglePolls?: () => void;
+  onToggleQA?: () => void;
   onOpenBackgroundSettings: () => void;
   onLeaveMeeting: () => void;
 }
@@ -70,6 +76,8 @@ export function MeetingControls({
   isSummaryOpen,
   isBreakoutRoomsOpen,
   isWaitingRoomOpen,
+  isPollsOpen,
+  isQAOpen,
   waitingCount = 0,
   isHost = false,
   onToggleMute,
@@ -82,6 +90,8 @@ export function MeetingControls({
   onToggleSummary,
   onToggleBreakoutRooms,
   onToggleWaitingRoom,
+  onTogglePolls,
+  onToggleQA,
   onOpenBackgroundSettings,
   onLeaveMeeting,
 }: MeetingControlsProps) {
@@ -200,6 +210,24 @@ export function MeetingControls({
         onClick={onToggleSummary}
         variant={isSummaryOpen ? "accent" : "default"}
       />
+
+      {onTogglePolls && (
+        <ControlButton
+          icon={BarChart3}
+          label="Polls"
+          onClick={onTogglePolls}
+          variant={isPollsOpen ? "accent" : "default"}
+        />
+      )}
+
+      {onToggleQA && (
+        <ControlButton
+          icon={HelpCircle}
+          label="Q&A"
+          onClick={onToggleQA}
+          variant={isQAOpen ? "accent" : "default"}
+        />
+      )}
 
       {isHost && onToggleBreakoutRooms && (
         <ControlButton

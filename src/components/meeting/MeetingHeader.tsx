@@ -2,12 +2,15 @@ import { Shield, Copy, Check, Circle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { ConnectionIndicator } from "./ConnectionIndicator";
 
 interface MeetingHeaderProps {
   meetingId: string;
   meetingTitle: string;
   isRecording?: boolean;
   recordingDuration?: number;
+  connectionQuality?: "excellent" | "good" | "fair" | "poor" | "disconnected";
+  connectionLatency?: number;
 }
 
 export function MeetingHeader({
@@ -15,6 +18,8 @@ export function MeetingHeader({
   meetingTitle,
   isRecording = false,
   recordingDuration = 0,
+  connectionQuality = "good",
+  connectionLatency = 0,
 }: MeetingHeaderProps) {
   const [copied, setCopied] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -49,10 +54,10 @@ export function MeetingHeader({
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-            <span className="text-sm font-bold text-primary-foreground">M</span>
+            <span className="text-sm font-bold text-primary-foreground">C</span>
           </div>
           <span className="text-lg font-semibold text-meeting-text">
-            MeetFlow
+            Cardinal Meets
           </span>
         </div>
         <div className="h-6 w-px bg-meeting-border" />
@@ -90,6 +95,8 @@ export function MeetingHeader({
             <div className="h-6 w-px bg-meeting-border" />
           </>
         )}
+        <ConnectionIndicator quality={connectionQuality} latency={connectionLatency} />
+        <div className="h-6 w-px bg-meeting-border" />
         <div className="flex items-center gap-2 text-meeting-muted">
           <Shield className="h-4 w-4 text-accent" />
           <span className="text-sm">End-to-end encrypted</span>
