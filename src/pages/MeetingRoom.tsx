@@ -15,6 +15,7 @@ import { PollsPanel } from "@/components/meeting/PollsPanel";
 import { QAPanel } from "@/components/meeting/QAPanel";
 import { ReactionsOverlay } from "@/components/meeting/ReactionsOverlay";
 import { ReactionsPicker } from "@/components/meeting/ReactionsPicker";
+import { WhiteboardPanel } from "@/components/meeting/WhiteboardPanel";
 import { useWebRTC } from "@/hooks/useWebRTC";
 import { useTranscription } from "@/hooks/useTranscription";
 import { useMeetingRecording } from "@/hooks/useMeetingRecording";
@@ -44,6 +45,7 @@ export default function MeetingRoom() {
   const [isWaitingRoomOpen, setIsWaitingRoomOpen] = useState(false);
   const [isPollsOpen, setIsPollsOpen] = useState(false);
   const [isQAOpen, setIsQAOpen] = useState(false);
+  const [isWhiteboardOpen, setIsWhiteboardOpen] = useState(false);
 
   // Settings state
   const [backgroundEffect, setBackgroundEffect] = useState<BackgroundEffect>("none");
@@ -51,6 +53,8 @@ export default function MeetingRoom() {
   const [dbMeetingId, setDbMeetingId] = useState<string | null>(null);
   const [isHost, setIsHost] = useState(false);
   const [noiseSuppressionEnabled, setNoiseSuppressionEnabled] = useState(true);
+  const [meetingHasPassword, setMeetingHasPassword] = useState(false);
+  const [meetingWaitingRoomEnabled, setMeetingWaitingRoomEnabled] = useState(true);
 
   const {
     participants,
@@ -121,6 +125,8 @@ export default function MeetingRoom() {
         const { data } = await getMeetingByCode(meetingId);
         if (data) {
           setDbMeetingId(data.id);
+          setMeetingHasPassword(!!data.password);
+          setMeetingWaitingRoomEnabled(data.waiting_room_enabled ?? true);
           if (user && data.host_id === user.id) {
             setIsHost(true);
           }
@@ -248,12 +254,19 @@ export default function MeetingRoom() {
         recordingDuration={recordingDuration}
         connectionQuality={connectionHealth.quality}
         connectionLatency={connectionHealth.latency}
+        isEncrypted={true}
+        hasPassword={meetingHasPassword}
+        waitingRoomEnabled={meetingWaitingRoomEnabled}
       />
 
       <div className="flex flex-1 overflow-hidden">
         <div className="flex flex-1 flex-col">
           <div className="flex-1 overflow-hidden">
-            <VideoGrid participants={gridParticipants} />
+            {isWhiteboardOpen ? (
+              <WhiteboardPanel onClose={() => setIsWhiteboardOpen(false)} />
+            ) : (
+              <VideoGrid participants={gridParticipants} />
+            )}
           </div>
 
           <div className="flex items-center justify-center gap-2 pb-6">
@@ -270,6 +283,7 @@ export default function MeetingRoom() {
               isWaitingRoomOpen={isWaitingRoomOpen}
               isPollsOpen={isPollsOpen}
               isQAOpen={isQAOpen}
+              isWhiteboardOpen={isWhiteboardOpen}
               waitingCount={waitingParticipants.length}
               isHost={isHost}
               onToggleMute={toggleMute}
@@ -284,6 +298,7 @@ export default function MeetingRoom() {
               onToggleWaitingRoom={() => setIsWaitingRoomOpen(!isWaitingRoomOpen)}
               onTogglePolls={() => setIsPollsOpen(!isPollsOpen)}
               onToggleQA={() => setIsQAOpen(!isQAOpen)}
+              onToggleWhiteboard={() => setIsWhiteboardOpen(!isWhiteboardOpen)}
               onOpenBackgroundSettings={() => setIsBackgroundDialogOpen(true)}
               onLeaveMeeting={handleLeaveMeeting}
             />
