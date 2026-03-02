@@ -1,8 +1,9 @@
-import { Shield, Copy, Check, Circle } from "lucide-react";
+import { Copy, Check, Circle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { ConnectionIndicator } from "./ConnectionIndicator";
+import { SecurityIndicator } from "./SecurityIndicator";
 
 interface MeetingHeaderProps {
   meetingId: string;
@@ -11,6 +12,9 @@ interface MeetingHeaderProps {
   recordingDuration?: number;
   connectionQuality?: "excellent" | "good" | "fair" | "poor" | "disconnected";
   connectionLatency?: number;
+  isEncrypted?: boolean;
+  hasPassword?: boolean;
+  waitingRoomEnabled?: boolean;
 }
 
 export function MeetingHeader({
@@ -20,6 +24,9 @@ export function MeetingHeader({
   recordingDuration = 0,
   connectionQuality = "good",
   connectionLatency = 0,
+  isEncrypted = true,
+  hasPassword = false,
+  waitingRoomEnabled = true,
 }: MeetingHeaderProps) {
   const [copied, setCopied] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -97,10 +104,11 @@ export function MeetingHeader({
         )}
         <ConnectionIndicator quality={connectionQuality} latency={connectionLatency} />
         <div className="h-6 w-px bg-meeting-border" />
-        <div className="flex items-center gap-2 text-meeting-muted">
-          <Shield className="h-4 w-4 text-accent" />
-          <span className="text-sm">End-to-end encrypted</span>
-        </div>
+        <SecurityIndicator
+          isEncrypted={isEncrypted}
+          hasPassword={hasPassword}
+          waitingRoomEnabled={waitingRoomEnabled}
+        />
         <div className="h-6 w-px bg-meeting-border" />
         <span className="text-sm font-medium text-meeting-text">
           {formatTime()}

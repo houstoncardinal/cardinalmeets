@@ -14,6 +14,7 @@ import {
   User,
   Settings,
   Mail,
+  BarChart3,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -274,14 +275,17 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          <Card className="transition-colors hover:bg-accent">
+          <Card
+            className="cursor-pointer transition-colors hover:bg-accent"
+            onClick={() => navigate("/analytics")}
+          >
             <CardContent className="flex items-center gap-4 p-6">
               <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-muted">
-                <Users className="h-6 w-6 text-muted-foreground" />
+                <BarChart3 className="h-6 w-6 text-muted-foreground" />
               </div>
               <div>
-                <h3 className="font-semibold">Contacts</h3>
-                <p className="text-sm text-muted-foreground">Coming soon</p>
+                <h3 className="font-semibold">Analytics</h3>
+                <p className="text-sm text-muted-foreground">Meeting insights</p>
               </div>
             </CardContent>
           </Card>

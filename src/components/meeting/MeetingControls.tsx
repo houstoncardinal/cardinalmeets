@@ -24,6 +24,7 @@ import {
   Clock,
   BarChart3,
   HelpCircle,
+  PenTool,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -47,6 +48,7 @@ interface MeetingControlsProps {
   isWaitingRoomOpen?: boolean;
   isPollsOpen?: boolean;
   isQAOpen?: boolean;
+  isWhiteboardOpen?: boolean;
   waitingCount?: number;
   isHost?: boolean;
   onToggleMute: () => void;
@@ -61,6 +63,7 @@ interface MeetingControlsProps {
   onToggleWaitingRoom?: () => void;
   onTogglePolls?: () => void;
   onToggleQA?: () => void;
+  onToggleWhiteboard?: () => void;
   onOpenBackgroundSettings: () => void;
   onLeaveMeeting: () => void;
 }
@@ -78,6 +81,7 @@ export function MeetingControls({
   isWaitingRoomOpen,
   isPollsOpen,
   isQAOpen,
+  isWhiteboardOpen,
   waitingCount = 0,
   isHost = false,
   onToggleMute,
@@ -92,6 +96,7 @@ export function MeetingControls({
   onToggleWaitingRoom,
   onTogglePolls,
   onToggleQA,
+  onToggleWhiteboard,
   onOpenBackgroundSettings,
   onLeaveMeeting,
 }: MeetingControlsProps) {
@@ -111,131 +116,56 @@ export function MeetingControls({
     variant?: "default" | "destructive" | "accent" | "recording";
   }) => {
     const getButtonClasses = () => {
-      if (variant === "destructive") {
-        return "bg-destructive hover:bg-destructive/90 text-destructive-foreground";
-      }
-      if (variant === "recording") {
-        return "bg-destructive hover:bg-destructive/90 text-destructive-foreground animate-pulse";
-      }
-      if (variant === "accent" || isActive) {
-        return "bg-primary hover:bg-primary/90 text-primary-foreground";
-      }
+      if (variant === "destructive") return "bg-destructive hover:bg-destructive/90 text-destructive-foreground";
+      if (variant === "recording") return "bg-destructive hover:bg-destructive/90 text-destructive-foreground animate-pulse";
+      if (variant === "accent" || isActive) return "bg-primary hover:bg-primary/90 text-primary-foreground";
       return "bg-meeting-card hover:bg-meeting-border text-meeting-text";
     };
 
     return (
       <Tooltip>
         <TooltipTrigger asChild>
-          <Button
-            variant="ghost"
-            size="lg"
-            onClick={onClick}
-            className={`h-12 w-12 rounded-full p-0 transition-all ${getButtonClasses()}`}
-          >
+          <Button variant="ghost" size="lg" onClick={onClick} className={`h-12 w-12 rounded-full p-0 transition-all ${getButtonClasses()}`}>
             <Icon className="h-5 w-5" />
           </Button>
         </TooltipTrigger>
-        <TooltipContent>
-          <p>{label}</p>
-        </TooltipContent>
+        <TooltipContent><p>{label}</p></TooltipContent>
       </Tooltip>
     );
   };
 
   return (
     <div className="flex items-center justify-center gap-2 rounded-2xl bg-meeting-card/90 px-4 py-3 backdrop-blur-lg">
-      <ControlButton
-        icon={isMuted ? MicOff : Mic}
-        label={isMuted ? "Unmute" : "Mute"}
-        onClick={onToggleMute}
-        isActive={!isMuted}
-      />
-
-      <ControlButton
-        icon={isVideoOn ? Video : VideoOff}
-        label={isVideoOn ? "Turn off camera" : "Turn on camera"}
-        onClick={onToggleVideo}
-        isActive={isVideoOn}
-      />
+      <ControlButton icon={isMuted ? MicOff : Mic} label={isMuted ? "Unmute" : "Mute"} onClick={onToggleMute} isActive={!isMuted} />
+      <ControlButton icon={isVideoOn ? Video : VideoOff} label={isVideoOn ? "Turn off camera" : "Turn on camera"} onClick={onToggleVideo} isActive={isVideoOn} />
 
       <div className="mx-1 h-8 w-px bg-meeting-border" />
 
-      <ControlButton
-        icon={isScreenSharing ? MonitorOff : Monitor}
-        label={isScreenSharing ? "Stop sharing" : "Share screen"}
-        onClick={onToggleScreenShare}
-        variant={isScreenSharing ? "accent" : "default"}
-      />
-
-      <ControlButton
-        icon={isRecording ? CircleStop : Circle}
-        label={isRecording ? "Stop recording" : "Start recording"}
-        onClick={onToggleRecording}
-        variant={isRecording ? "recording" : "default"}
-      />
-
-      <ControlButton
-        icon={isCaptionsOn ? Captions : CaptionsOff}
-        label={isCaptionsOn ? "Turn off captions" : "Turn on captions"}
-        onClick={onToggleCaptions}
-        variant={isCaptionsOn ? "accent" : "default"}
-      />
-
-      <ControlButton
-        icon={Hand}
-        label={isHandRaised ? "Lower hand" : "Raise hand"}
-        onClick={() => setIsHandRaised(!isHandRaised)}
-        variant={isHandRaised ? "accent" : "default"}
-      />
+      <ControlButton icon={isScreenSharing ? MonitorOff : Monitor} label={isScreenSharing ? "Stop sharing" : "Share screen"} onClick={onToggleScreenShare} variant={isScreenSharing ? "accent" : "default"} />
+      <ControlButton icon={isRecording ? CircleStop : Circle} label={isRecording ? "Stop recording" : "Start recording"} onClick={onToggleRecording} variant={isRecording ? "recording" : "default"} />
+      <ControlButton icon={isCaptionsOn ? Captions : CaptionsOff} label={isCaptionsOn ? "Turn off captions" : "Turn on captions"} onClick={onToggleCaptions} variant={isCaptionsOn ? "accent" : "default"} />
+      <ControlButton icon={Hand} label={isHandRaised ? "Lower hand" : "Raise hand"} onClick={() => setIsHandRaised(!isHandRaised)} variant={isHandRaised ? "accent" : "default"} />
 
       <div className="mx-1 h-8 w-px bg-meeting-border" />
 
-      <ControlButton
-        icon={Users}
-        label="Participants"
-        onClick={onToggleParticipants}
-        variant={isParticipantsOpen ? "accent" : "default"}
-      />
+      <ControlButton icon={Users} label="Participants" onClick={onToggleParticipants} variant={isParticipantsOpen ? "accent" : "default"} />
+      <ControlButton icon={MessageSquare} label="Chat" onClick={onToggleChat} variant={isChatOpen ? "accent" : "default"} />
+      <ControlButton icon={Sparkles} label="AI Summary" onClick={onToggleSummary} variant={isSummaryOpen ? "accent" : "default"} />
 
-      <ControlButton
-        icon={MessageSquare}
-        label="Chat"
-        onClick={onToggleChat}
-        variant={isChatOpen ? "accent" : "default"}
-      />
-
-      <ControlButton
-        icon={Sparkles}
-        label="AI Summary"
-        onClick={onToggleSummary}
-        variant={isSummaryOpen ? "accent" : "default"}
-      />
+      {onToggleWhiteboard && (
+        <ControlButton icon={PenTool} label="Whiteboard" onClick={onToggleWhiteboard} variant={isWhiteboardOpen ? "accent" : "default"} />
+      )}
 
       {onTogglePolls && (
-        <ControlButton
-          icon={BarChart3}
-          label="Polls"
-          onClick={onTogglePolls}
-          variant={isPollsOpen ? "accent" : "default"}
-        />
+        <ControlButton icon={BarChart3} label="Polls" onClick={onTogglePolls} variant={isPollsOpen ? "accent" : "default"} />
       )}
 
       {onToggleQA && (
-        <ControlButton
-          icon={HelpCircle}
-          label="Q&A"
-          onClick={onToggleQA}
-          variant={isQAOpen ? "accent" : "default"}
-        />
+        <ControlButton icon={HelpCircle} label="Q&A" onClick={onToggleQA} variant={isQAOpen ? "accent" : "default"} />
       )}
 
       {isHost && onToggleBreakoutRooms && (
-        <ControlButton
-          icon={LayoutGrid}
-          label="Breakout Rooms"
-          onClick={onToggleBreakoutRooms}
-          variant={isBreakoutRoomsOpen ? "accent" : "default"}
-        />
+        <ControlButton icon={LayoutGrid} label="Breakout Rooms" onClick={onToggleBreakoutRooms} variant={isBreakoutRoomsOpen ? "accent" : "default"} />
       )}
 
       {isHost && onToggleWaitingRoom && (
@@ -253,28 +183,19 @@ export function MeetingControls({
             >
               <Clock className="h-5 w-5" />
               {waitingCount > 0 && (
-                <Badge
-                  variant="destructive"
-                  className="absolute -right-1 -top-1 h-5 w-5 rounded-full p-0 text-xs flex items-center justify-center"
-                >
+                <Badge variant="destructive" className="absolute -right-1 -top-1 h-5 w-5 rounded-full p-0 text-xs flex items-center justify-center">
                   {waitingCount}
                 </Badge>
               )}
             </Button>
           </TooltipTrigger>
-          <TooltipContent>
-            <p>Waiting Room {waitingCount > 0 && `(${waitingCount})`}</p>
-          </TooltipContent>
+          <TooltipContent><p>Waiting Room {waitingCount > 0 && `(${waitingCount})`}</p></TooltipContent>
         </Tooltip>
       )}
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            size="lg"
-            className="h-12 w-12 rounded-full bg-meeting-card p-0 text-meeting-text hover:bg-meeting-border"
-          >
+          <Button variant="ghost" size="lg" className="h-12 w-12 rounded-full bg-meeting-card p-0 text-meeting-text hover:bg-meeting-border">
             <MoreHorizontal className="h-5 w-5" />
           </Button>
         </DropdownMenuTrigger>
@@ -293,12 +214,7 @@ export function MeetingControls({
 
       <div className="mx-1 h-8 w-px bg-meeting-border" />
 
-      <ControlButton
-        icon={Phone}
-        label="Leave meeting"
-        onClick={onLeaveMeeting}
-        variant="destructive"
-      />
+      <ControlButton icon={Phone} label="Leave meeting" onClick={onLeaveMeeting} variant="destructive" />
     </div>
   );
 }
