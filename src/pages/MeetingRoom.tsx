@@ -16,6 +16,7 @@ import { QAPanel } from "@/components/meeting/QAPanel";
 import { ReactionsOverlay } from "@/components/meeting/ReactionsOverlay";
 import { ReactionsPicker } from "@/components/meeting/ReactionsPicker";
 import { WhiteboardPanel } from "@/components/meeting/WhiteboardPanel";
+import { PreMeetingLobby } from "@/components/meeting/PreMeetingLobby";
 import { useWebRTC } from "@/hooks/useWebRTC";
 import { useTranscription } from "@/hooks/useTranscription";
 import { useMeetingRecording } from "@/hooks/useMeetingRecording";
@@ -55,6 +56,7 @@ export default function MeetingRoom() {
   const [noiseSuppressionEnabled, setNoiseSuppressionEnabled] = useState(true);
   const [meetingHasPassword, setMeetingHasPassword] = useState(false);
   const [meetingWaitingRoomEnabled, setMeetingWaitingRoomEnabled] = useState(true);
+  const [hasJoinedLobby, setHasJoinedLobby] = useState(false);
 
   const {
     participants,
@@ -148,7 +150,7 @@ export default function MeetingRoom() {
       return;
     }
 
-    if (user && meetingId && !isConnected) {
+    if (user && meetingId && !isConnected && hasJoinedLobby) {
       joinMeeting().catch((err) => {
         console.error("Failed to join meeting:", err);
         toast({
@@ -159,7 +161,7 @@ export default function MeetingRoom() {
         navigate("/dashboard");
       });
     }
-  }, [user, loading, meetingId, isConnected, joinMeeting, navigate, toast]);
+  }, [user, loading, meetingId, isConnected, joinMeeting, navigate, toast, hasJoinedLobby]);
 
   // Handle captions toggle
   useEffect(() => {
@@ -210,6 +212,18 @@ export default function MeetingRoom() {
     isScreenShare: p.isScreenShare,
     stream: p.isLocal && processedStream ? processedStream : p.stream,
   }));
+
+  // Show pre-meeting lobby first
+  if (user && meetingId && !hasJoinedLobby) {
+    return (
+      <PreMeetingLobby
+        meetingCode={meetingId}
+        meetingTitle="Video Meeting"
+        onJoin={() => setHasJoinedLobby(true)}
+        onCancel={() => navigate("/dashboard")}
+      />
+    );
+  }
 
   // Show waiting screen if user is in waiting room
   if (myStatus === "waiting") {
@@ -263,7 +277,7 @@ export default function MeetingRoom() {
         <div className="flex flex-1 flex-col">
           <div className="flex-1 overflow-hidden">
             {isWhiteboardOpen ? (
-              <WhiteboardPanel onClose={() => setIsWhiteboardOpen(false)} />
+              <WhiteboardPanel onClose={() => setIsWhiteboardOpen(false)} meetingId={dbMeetingId || meetingId || ""} />
             ) : (
               <VideoGrid participants={gridParticipants} />
             )}
