@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useState, ReactNode } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -63,12 +63,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error };
   };
 
-  const signInAsGuest = async (displayName: string) => {
+  const signInAsGuest = useCallback(async (displayName: string) => {
     const { error } = await supabase.auth.signInAnonymously({
       options: { data: { full_name: displayName.trim() || "Guest" } },
     });
     return { error };
-  };
+  }, []);
 
   const signOut = async () => {
     await supabase.auth.signOut();
