@@ -27,7 +27,6 @@ import { useNoiseSuppression } from "@/hooks/useNoiseSuppression";
 import { useReactions } from "@/hooks/useReactions";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { useMeetings } from "@/hooks/useMeetings";
 import { Button } from "@/components/ui/button";
 import { VideoOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -294,7 +293,7 @@ export default function MeetingRoom() {
       <div className="flex h-screen items-center justify-center bg-meeting-bg">
         <div className="flex flex-col items-center gap-4 text-center">
           <p className="text-xl font-semibold text-meeting-text">Your request to join was declined</p>
-          <p className="text-meeting-text-muted">The host did not admit you to the meeting.</p>
+          <p className="text-meeting-muted">The host did not admit you to the meeting.</p>
           <Button onClick={() => navigate(user?.is_anonymous ? "/" : "/dashboard")} className="mt-4">Leave meeting</Button>
         </div>
       </div>
