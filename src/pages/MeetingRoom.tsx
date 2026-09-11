@@ -40,7 +40,6 @@ export default function MeetingRoom() {
   const { meetingId } = useParams();
   const { user, loading, signInAsGuest } = useAuth();
   const { toast } = useToast();
-  const { getMeetingByCode } = useMeetings();
 
   // Panel state
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -159,7 +158,14 @@ export default function MeetingRoom() {
     setMeetingState(data.status === "ended" ? "ended" : data.status === "cancelled" ? "cancelled" : "ready");
   }, [meetingId, user]);
 
-  useEffect(() => { if (!loading) resolveMeeting(); }, [loading, resolveMeeting]);
+  useEffect(() => {
+    if (loading) return;
+    if (!user) {
+      signInAsGuest("Guest").catch(() => setMeetingState("error"));
+      return;
+    }
+    resolveMeeting();
+  }, [loading, user, signInAsGuest, resolveMeeting]);
 
   useEffect(() => {
     if (!displayName && user) {
@@ -269,13 +275,6 @@ export default function MeetingRoom() {
         isGuest={!user || Boolean(user.is_anonymous)}
         onDisplayNameChange={setDisplayName}
         onJoin={async (settings) => {
-          if (!user) {
-            const { error } = await signInAsGuest(displayName);
-            if (error) {
-              setJoinError(error.message);
-              return;
-            }
-          }
           setJoinSettings(settings);
           setHasJoinedLobby(true);
         }}
