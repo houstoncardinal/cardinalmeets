@@ -135,25 +135,29 @@ export function MeetingControls({
   };
 
   return (
-    <div className="flex items-center justify-center gap-2 rounded-2xl bg-meeting-card/90 px-4 py-3 backdrop-blur-lg">
+    <div className="flex min-w-max items-center justify-center gap-2 rounded-2xl bg-meeting-card/90 px-3 py-2 backdrop-blur-lg sm:px-4 sm:py-3">
       <ControlButton icon={isMuted ? MicOff : Mic} label={isMuted ? "Unmute" : "Mute"} onClick={onToggleMute} isActive={!isMuted} />
       <ControlButton icon={isVideoOn ? Video : VideoOff} label={isVideoOn ? "Turn off camera" : "Turn on camera"} onClick={onToggleVideo} isActive={isVideoOn} />
 
       <div className="mx-1 h-8 w-px bg-meeting-border" />
 
       <ControlButton icon={isScreenSharing ? MonitorOff : Monitor} label={isScreenSharing ? "Stop sharing" : "Share screen"} onClick={onToggleScreenShare} variant={isScreenSharing ? "accent" : "default"} />
-      <ControlButton icon={isRecording ? CircleStop : Circle} label={isRecording ? "Stop recording" : "Start recording"} onClick={onToggleRecording} variant={isRecording ? "recording" : "default"} />
-      <ControlButton icon={isCaptionsOn ? Captions : CaptionsOff} label={isCaptionsOn ? "Turn off captions" : "Turn on captions"} onClick={onToggleCaptions} variant={isCaptionsOn ? "accent" : "default"} />
-      <ControlButton icon={Hand} label={isHandRaised ? "Lower hand" : "Raise hand"} onClick={() => setIsHandRaised(!isHandRaised)} variant={isHandRaised ? "accent" : "default"} />
+      <div className="hidden items-center gap-2 sm:flex">
+        <ControlButton icon={isRecording ? CircleStop : Circle} label={isRecording ? "Stop recording" : "Start recording"} onClick={onToggleRecording} variant={isRecording ? "recording" : "default"} />
+        <ControlButton icon={isCaptionsOn ? Captions : CaptionsOff} label={isCaptionsOn ? "Turn off captions" : "Turn on captions"} onClick={onToggleCaptions} variant={isCaptionsOn ? "accent" : "default"} />
+        <ControlButton icon={Hand} label={isHandRaised ? "Lower hand" : "Raise hand"} onClick={() => setIsHandRaised(!isHandRaised)} variant={isHandRaised ? "accent" : "default"} />
+      </div>
 
       <div className="mx-1 h-8 w-px bg-meeting-border" />
 
       <ControlButton icon={Users} label="Participants" onClick={onToggleParticipants} variant={isParticipantsOpen ? "accent" : "default"} />
       <ControlButton icon={MessageSquare} label="Chat" onClick={onToggleChat} variant={isChatOpen ? "accent" : "default"} />
-      <ControlButton icon={Sparkles} label="AI Summary" onClick={onToggleSummary} variant={isSummaryOpen ? "accent" : "default"} />
+      <div className="hidden sm:block"><ControlButton icon={Sparkles} label="AI Summary" onClick={onToggleSummary} variant={isSummaryOpen ? "accent" : "default"} /></div>
 
       {onToggleWhiteboard && (
+        <div className="hidden md:block">
         <ControlButton icon={PenTool} label="Whiteboard" onClick={onToggleWhiteboard} variant={isWhiteboardOpen ? "accent" : "default"} />
+        </div>
       )}
 
       {onTogglePolls && (
@@ -204,6 +208,16 @@ export function MeetingControls({
             <Image className="mr-2 h-4 w-4" />
             Background Effects
           </DropdownMenuItem>
+          <DropdownMenuItem className="sm:hidden" onClick={onToggleCaptions}>
+            <Captions className="mr-2 h-4 w-4" />
+            {isCaptionsOn ? "Turn off captions" : "Turn on captions"}
+          </DropdownMenuItem>
+          {onToggleWhiteboard && (
+            <DropdownMenuItem className="md:hidden" onClick={onToggleWhiteboard}>
+              <PenTool className="mr-2 h-4 w-4" />
+              Whiteboard
+            </DropdownMenuItem>
+          )}
           <DropdownMenuSeparator />
           <DropdownMenuItem>
             <Settings className="mr-2 h-4 w-4" />
