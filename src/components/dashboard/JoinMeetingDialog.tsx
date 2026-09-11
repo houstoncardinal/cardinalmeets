@@ -21,9 +21,13 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { isValidMeetingCode, normalizeMeetingCode } from "@/lib/meetingLinks";
 
 const joinSchema = z.object({
   meetingCode: z.string().min(1, "Meeting code is required"),
+}).refine((data) => isValidMeetingCode(data.meetingCode), {
+  message: "Enter a valid meeting code or invite link",
+  path: ["meetingCode"],
 });
 
 type JoinFormData = z.infer<typeof joinSchema>;
@@ -52,10 +56,7 @@ export function JoinMeetingDialog({
     setIsLoading(true);
     
     // Clean the meeting code (remove URL parts if pasted)
-    let code = data.meetingCode.trim();
-    if (code.includes("/meeting/")) {
-      code = code.split("/meeting/").pop() || code;
-    }
+    const code = normalizeMeetingCode(data.meetingCode);
     
     onJoin(code);
     setIsLoading(false);

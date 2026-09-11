@@ -110,6 +110,44 @@ export type Database = {
           },
         ]
       }
+      meeting_access: {
+        Row: {
+          has_password: boolean
+          host_id: string
+          meeting_code: string
+          meeting_id: string
+          status: Database["public"]["Enums"]["meeting_status"]
+          title: string
+          waiting_room_enabled: boolean
+        }
+        Insert: {
+          has_password?: boolean
+          host_id: string
+          meeting_code: string
+          meeting_id: string
+          status: Database["public"]["Enums"]["meeting_status"]
+          title: string
+          waiting_room_enabled?: boolean
+        }
+        Update: {
+          has_password?: boolean
+          host_id?: string
+          meeting_code?: string
+          meeting_id?: string
+          status?: Database["public"]["Enums"]["meeting_status"]
+          title?: string
+          waiting_room_enabled?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_access_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: true
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       meeting_analytics: {
         Row: {
           created_at: string
@@ -688,6 +726,31 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_instant_meeting: {
+        Args: { _title?: string }
+        Returns: {
+          created_at: string
+          description: string | null
+          duration_minutes: number | null
+          host_id: string
+          id: string
+          is_recurring: boolean | null
+          meeting_code: string
+          password: string | null
+          recurring_pattern: Json | null
+          scheduled_at: string | null
+          status: Database["public"]["Enums"]["meeting_status"]
+          title: string
+          updated_at: string
+          waiting_room_enabled: boolean | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "meetings"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       generate_meeting_code: { Args: never; Returns: string }
       has_role: {
         Args: {
@@ -703,6 +766,19 @@ export type Database = {
       is_meeting_participant: {
         Args: { _meeting_id: string; _user_id: string }
         Returns: boolean
+      }
+      join_meeting_by_code: {
+        Args: { _meeting_code: string }
+        Returns: {
+          has_password: boolean
+          host_id: string
+          id: string
+          is_host: boolean
+          meeting_code: string
+          status: Database["public"]["Enums"]["meeting_status"]
+          title: string
+          waiting_room_enabled: boolean
+        }[]
       }
     }
     Enums: {

@@ -1,4 +1,4 @@
-import { Copy, Check, Circle } from "lucide-react";
+import { Copy, Check, Circle, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
@@ -36,10 +36,10 @@ export function MeetingHeader({
     return () => clearInterval(timer);
   }, []);
 
-  const copyMeetingId = () => {
-    navigator.clipboard.writeText(meetingId);
+  const copyInviteLink = () => {
+    navigator.clipboard.writeText(`${window.location.origin}/meeting/${meetingId}`);
     setCopied(true);
-    toast.success("Meeting ID copied to clipboard");
+    toast.success("Invite link copied");
     setTimeout(() => setCopied(false), 2000);
   };
 
@@ -57,9 +57,9 @@ export function MeetingHeader({
   };
 
   return (
-    <div className="flex items-center justify-between bg-meeting-card/50 px-6 py-3 backdrop-blur-lg">
-      <div className="flex items-center gap-4">
-        <div className="flex items-center gap-2">
+    <header className="flex min-h-16 items-center justify-between gap-3 bg-meeting-card/50 px-3 py-2 backdrop-blur-lg sm:px-6">
+      <div className="flex min-w-0 items-center gap-3 sm:gap-4">
+        <div className="hidden items-center gap-2 sm:flex">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
             <span className="text-sm font-bold text-primary-foreground">C</span>
           </div>
@@ -67,17 +67,17 @@ export function MeetingHeader({
             Cardinal Meets
           </span>
         </div>
-        <div className="h-6 w-px bg-meeting-border" />
-        <div className="flex flex-col">
-          <span className="text-sm font-medium text-meeting-text">
+        <div className="hidden h-6 w-px bg-meeting-border sm:block" />
+        <div className="flex min-w-0 flex-col">
+          <span className="truncate text-sm font-medium text-meeting-text">
             {meetingTitle}
           </span>
           <div className="flex items-center gap-2 text-xs text-meeting-muted">
-            <span>ID: {meetingId}</span>
+            <span className="truncate">{meetingId}</span>
             <Button
               variant="ghost"
               size="icon"
-              onClick={copyMeetingId}
+              onClick={copyInviteLink}
               className="h-5 w-5 text-meeting-muted hover:text-meeting-text"
             >
               {copied ? (
@@ -90,7 +90,11 @@ export function MeetingHeader({
         </div>
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex shrink-0 items-center gap-2 sm:gap-4">
+        <Button onClick={copyInviteLink} size="sm" className="gap-2">
+          {copied ? <Check className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
+          <span className="hidden sm:inline">{copied ? "Copied" : "Invite people"}</span>
+        </Button>
         {isRecording && (
           <>
             <div className="flex items-center gap-2 rounded-full bg-destructive/20 px-3 py-1">
@@ -102,18 +106,16 @@ export function MeetingHeader({
             <div className="h-6 w-px bg-meeting-border" />
           </>
         )}
-        <ConnectionIndicator quality={connectionQuality} latency={connectionLatency} />
-        <div className="h-6 w-px bg-meeting-border" />
-        <SecurityIndicator
-          isEncrypted={isEncrypted}
-          hasPassword={hasPassword}
-          waitingRoomEnabled={waitingRoomEnabled}
-        />
-        <div className="h-6 w-px bg-meeting-border" />
-        <span className="text-sm font-medium text-meeting-text">
+        <div className="hidden items-center gap-4 md:flex">
+          <ConnectionIndicator quality={connectionQuality} latency={connectionLatency} />
+          <div className="h-6 w-px bg-meeting-border" />
+          <SecurityIndicator isEncrypted={isEncrypted} hasPassword={hasPassword} waitingRoomEnabled={waitingRoomEnabled} />
+          <div className="h-6 w-px bg-meeting-border" />
+        </div>
+        <span className="hidden text-sm font-medium text-meeting-text lg:inline">
           {formatTime()}
         </span>
       </div>
-    </div>
+    </header>
   );
 }

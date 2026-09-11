@@ -70,7 +70,14 @@ const MAX_RECONNECT_ATTEMPTS = 5;
 const RECONNECT_BASE_DELAY = 1000;
 const HEALTH_CHECK_INTERVAL = 5000;
 
-export function useWebRTC(meetingId: string) {
+interface JoinSettings {
+  audioDeviceId?: string;
+  videoDeviceId?: string;
+  audioEnabled: boolean;
+  videoEnabled: boolean;
+}
+
+export function useWebRTC(meetingId: string, displayName?: string) {
   const { user } = useAuth();
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [screenStream, setScreenStream] = useState<MediaStream | null>(null);
@@ -99,18 +106,18 @@ export function useWebRTC(meetingId: string) {
   }, [localStream]);
 
   const getUserInitials = useCallback(() => {
-    const name = user?.user_metadata?.full_name || user?.email || "User";
+    const name = displayName || user?.user_metadata?.full_name || user?.email || "Guest";
     return name
       .split(" ")
       .map((n: string) => n[0])
       .join("")
       .toUpperCase()
       .substring(0, 2);
-  }, [user]);
+  }, [displayName, user]);
 
   const getUserName = useCallback(() => {
-    return user?.user_metadata?.full_name || user?.email?.split("@")[0] || "User";
-  }, [user]);
+    return displayName || user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Guest";
+  }, [displayName, user]);
 
   // Speaking detection using audio analysis
   const startSpeakingDetection = useCallback((stream: MediaStream, participantId: string) => {
@@ -496,24 +503,36 @@ export function useWebRTC(meetingId: string) {
     setParticipants((prev) => prev.filter((p) => p.id !== senderId));
   }, []);
 
-  const startLocalStream = useCallback(async () => {
+  const startLocalStream = useCallback(async (settings?: JoinSettings) => {
     try {
       // Try HD first, fallback to lower quality
       let stream: MediaStream;
       try {
         stream = await navigator.mediaDevices.getUserMedia({
-          video: VIDEO_CONSTRAINTS_HD,
-          audio: AUDIO_CONSTRAINTS,
+          video: settings?.videoDeviceId
+            ? { ...VIDEO_CONSTRAINTS_HD, deviceId: { exact: settings.videoDeviceId } }
+            : VIDEO_CONSTRAINTS_HD,
+          audio: settings?.audioDeviceId
+            ? { ...AUDIO_CONSTRAINTS, deviceId: { exact: settings.audioDeviceId } }
+            : AUDIO_CONSTRAINTS,
         });
       } catch {
         console.log("HD not available, falling back to 720p");
         stream = await navigator.mediaDevices.getUserMedia({
-          video: VIDEO_CONSTRAINTS_FALLBACK,
-          audio: AUDIO_CONSTRAINTS,
+          video: settings?.videoDeviceId
+            ? { ...VIDEO_CONSTRAINTS_FALLBACK, deviceId: { exact: settings.videoDeviceId } }
+            : VIDEO_CONSTRAINTS_FALLBACK,
+          audio: settings?.audioDeviceId
+            ? { ...AUDIO_CONSTRAINTS, deviceId: { exact: settings.audioDeviceId } }
+            : AUDIO_CONSTRAINTS,
         });
       }
 
       setLocalStream(stream);
+      stream.getAudioTracks().forEach((track) => { track.enabled = settings?.audioEnabled ?? true; });
+      stream.getVideoTracks().forEach((track) => { track.enabled = settings?.videoEnabled ?? true; });
+      setIsMuted(!(settings?.audioEnabled ?? true));
+      setIsVideoOn(settings?.videoEnabled ?? true);
 
       // Start local speaking detection
       startSpeakingDetection(stream, user?.id || "local");
@@ -523,10 +542,10 @@ export function useWebRTC(meetingId: string) {
           id: user?.id || "local",
           name: getUserName(),
           initials: getUserInitials(),
-          isMuted: false,
-          isVideoOn: true,
+          isMuted: !(settings?.audioEnabled ?? true),
+          isVideoOn: settings?.videoEnabled ?? true,
           isLocal: true,
-          isHost: true,
+          isHost: !user?.is_anonymous,
           stream,
         },
       ]);
@@ -538,21 +557,22 @@ export function useWebRTC(meetingId: string) {
     }
   }, [user?.id, getUserName, getUserInitials, startSpeakingDetection]);
 
-  const joinMeeting = useCallback(async () => {
+  const joinMeeting = useCallback(async (settings?: JoinSettings) => {
     if (!user || !meetingId) return;
 
-    const { data: meeting, error: meetingError } = await supabase
-      .from("meetings")
-      .select("id")
-      .eq("meeting_code", meetingId)
-      .single();
+    const { data: meetings, error: meetingError } = await supabase.rpc("join_meeting_by_code", {
+      _meeting_code: meetingId,
+    });
+    const meeting = meetings?.[0];
 
     if (meetingError || !meeting) {
       throw new Error("Meeting not found");
     }
 
     meetingUuidRef.current = meeting.id;
-    await startLocalStream();
+    if (meeting.status === "ended") throw new Error("This meeting has ended");
+    if (meeting.status === "cancelled") throw new Error("This meeting was cancelled");
+    await startLocalStream(settings);
 
     // Start health monitoring
     monitorConnectionHealth();

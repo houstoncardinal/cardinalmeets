@@ -7,10 +7,14 @@ import {
 } from "@/components/ui/select";
 import { Mic, MicOff, Video, VideoOff, Settings2, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Input } from "@/components/ui/input";
 
 interface PreMeetingLobbyProps {
   meetingCode: string;
   meetingTitle?: string;
+  displayName: string;
+  isGuest?: boolean;
+  onDisplayNameChange: (name: string) => void;
   onJoin: (settings: {
     audioDeviceId?: string;
     videoDeviceId?: string;
@@ -20,7 +24,7 @@ interface PreMeetingLobbyProps {
   onCancel: () => void;
 }
 
-export function PreMeetingLobby({ meetingCode, meetingTitle, onJoin, onCancel }: PreMeetingLobbyProps) {
+export function PreMeetingLobby({ meetingCode, meetingTitle, displayName, isGuest = false, onDisplayNameChange, onJoin, onCancel }: PreMeetingLobbyProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
@@ -163,7 +167,7 @@ export function PreMeetingLobby({ meetingCode, meetingTitle, onJoin, onCancel }:
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-meeting-bg p-4">
-      <Card className="w-full max-w-4xl border-meeting-border bg-meeting-card p-6 md:p-8">
+      <Card className="w-full max-w-4xl border-meeting-border bg-meeting-card p-5 md:p-8">
         <div className="mb-6 text-center">
           <h1 className="text-2xl font-bold text-meeting-text">Ready to join?</h1>
           <p className="mt-1 text-sm text-meeting-text-muted">
@@ -224,6 +228,19 @@ export function PreMeetingLobby({ meetingCode, meetingTitle, onJoin, onCancel }:
 
           {/* Device selection */}
           <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="display-name" className="text-xs text-meeting-text-muted">Your name</Label>
+              <Input
+                id="display-name"
+                value={displayName}
+                onChange={(event) => onDisplayNameChange(event.target.value)}
+                placeholder="How others will see you"
+                maxLength={60}
+                autoComplete="name"
+              />
+              {isGuest && <p className="text-xs text-meeting-text-muted">You’ll join securely as a guest.</p>}
+            </div>
+
             <div className="flex items-center gap-2 text-meeting-text">
               <Settings2 className="h-4 w-4" />
               <h2 className="text-sm font-semibold">Devices</h2>
@@ -280,7 +297,7 @@ export function PreMeetingLobby({ meetingCode, meetingTitle, onJoin, onCancel }:
             )}
 
             <div className="flex flex-col gap-2 pt-2">
-              <Button onClick={handleJoin} size="lg" className="w-full" disabled={loading}>
+              <Button onClick={handleJoin} size="lg" className="w-full" disabled={loading || !displayName.trim()}>
                 Join now
               </Button>
               <Button onClick={onCancel} variant="ghost" size="lg" className="w-full text-meeting-text-muted">

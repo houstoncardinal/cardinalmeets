@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { MeetingHeader } from "@/components/meeting/MeetingHeader";
 import { MeetingControls } from "@/components/meeting/MeetingControls";
@@ -27,14 +27,18 @@ import { useNoiseSuppression } from "@/hooks/useNoiseSuppression";
 import { useReactions } from "@/hooks/useReactions";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { useMeetings } from "@/hooks/useMeetings";
+import { Button } from "@/components/ui/button";
+import { VideoOff } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+
+type MeetingState = "checking" | "ready" | "missing" | "ended" | "cancelled" | "error";
+type JoinSettings = { audioDeviceId?: string; videoDeviceId?: string; audioEnabled: boolean; videoEnabled: boolean };
 
 export default function MeetingRoom() {
   const navigate = useNavigate();
   const { meetingId } = useParams();
-  const { user, loading } = useAuth();
+  const { user, loading, signInAsGuest } = useAuth();
   const { toast } = useToast();
-  const { getMeetingByCode } = useMeetings();
 
   // Panel state
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -57,6 +61,11 @@ export default function MeetingRoom() {
   const [meetingHasPassword, setMeetingHasPassword] = useState(false);
   const [meetingWaitingRoomEnabled, setMeetingWaitingRoomEnabled] = useState(true);
   const [hasJoinedLobby, setHasJoinedLobby] = useState(false);
+  const [meetingState, setMeetingState] = useState<MeetingState>("checking");
+  const [meetingTitle, setMeetingTitle] = useState("Video Meeting");
+  const [displayName, setDisplayName] = useState("");
+  const [joinSettings, setJoinSettings] = useState<JoinSettings | undefined>();
+  const [joinError, setJoinError] = useState<string | null>(null);
 
   const {
     participants,
@@ -72,7 +81,7 @@ export default function MeetingRoom() {
     startScreenShare,
     stopScreenShare,
     localStream,
-  } = useWebRTC(meetingId || "");
+  } = useWebRTC(meetingId || "", displayName);
 
   const { processedStream: noiseSuppressedStream } = useNoiseSuppression({
     stream: localStream,
@@ -121,47 +130,62 @@ export default function MeetingRoom() {
   const { activeReactions, sendReaction, REACTION_EMOJIS } = useReactions(dbMeetingId || "");
 
   // Fetch database meeting ID from meeting code
+  const resolveMeeting = useCallback(async () => {
+    if (!meetingId) {
+      setMeetingState("missing");
+      return;
+    }
+    setMeetingState("checking");
+    const { data, error } = await supabase
+      .from("meeting_access")
+      .select("*")
+      .eq("meeting_code", meetingId.toLowerCase())
+      .maybeSingle();
+    if (error) {
+      setMeetingState("error");
+      return;
+    }
+    if (!data) {
+      setMeetingState("missing");
+      return;
+    }
+    setDbMeetingId(data.meeting_id);
+    setMeetingTitle(data.title);
+    setMeetingHasPassword(data.has_password);
+    setMeetingWaitingRoomEnabled(data.waiting_room_enabled);
+    setIsHost(Boolean(user && data.host_id === user.id));
+    setMeetingState(data.status === "ended" ? "ended" : data.status === "cancelled" ? "cancelled" : "ready");
+  }, [meetingId, user]);
+
   useEffect(() => {
-    const fetchMeetingId = async () => {
-      if (meetingId) {
-        const { data } = await getMeetingByCode(meetingId);
-        if (data) {
-          setDbMeetingId(data.id);
-          setMeetingHasPassword(!!data.password);
-          setMeetingWaitingRoomEnabled(data.waiting_room_enabled ?? true);
-          if (user && data.host_id === user.id) {
-            setIsHost(true);
-          }
-        }
-      }
-    };
-    fetchMeetingId();
-  }, [meetingId, getMeetingByCode, user]);
+    if (loading) return;
+    if (!user) {
+      signInAsGuest("Guest").catch(() => setMeetingState("error"));
+      return;
+    }
+    resolveMeeting();
+  }, [loading, user, signInAsGuest, resolveMeeting]);
+
+  useEffect(() => {
+    if (!displayName && user) {
+      setDisplayName(user.user_metadata?.full_name || user.email?.split("@")[0] || "Guest");
+    }
+  }, [displayName, user]);
 
   // Join meeting on mount
   useEffect(() => {
-    if (!loading && !user) {
-      toast({
-        title: "Authentication required",
-        description: "Please sign in to join the meeting",
-        variant: "destructive",
-      });
-      navigate("/auth");
-      return;
-    }
-
-    if (user && meetingId && !isConnected && hasJoinedLobby) {
-      joinMeeting().catch((err) => {
+    if (user && meetingId && meetingState === "ready" && !isConnected && hasJoinedLobby) {
+      joinMeeting(joinSettings).catch((err) => {
         console.error("Failed to join meeting:", err);
         toast({
           title: "Failed to join meeting",
           description: err.message || "Please check the meeting code and try again",
           variant: "destructive",
         });
-        navigate("/dashboard");
+        setJoinError(err.message || "Unable to join this meeting");
       });
     }
-  }, [user, loading, meetingId, isConnected, joinMeeting, navigate, toast, hasJoinedLobby]);
+  }, [user, meetingId, meetingState, isConnected, joinMeeting, toast, hasJoinedLobby, joinSettings]);
 
   // Handle captions toggle
   useEffect(() => {
@@ -176,7 +200,7 @@ export default function MeetingRoom() {
   const handleLeaveMeeting = async () => {
     if (isRecording) stopRecording();
     await leaveMeeting();
-    navigate("/dashboard");
+    navigate(user?.is_anonymous ? "/" : "/dashboard");
   };
 
   const handleToggleScreenShare = () => {
@@ -188,7 +212,7 @@ export default function MeetingRoom() {
     if (isRecording) {
       stopRecording();
     } else {
-      const streams = participants.filter((p) => p.stream).map((p) => p.stream!);
+      const streams = participants.flatMap((p) => (p.stream ? [p.stream] : []));
       if (localStream) streams.push(localStream);
       startRecording(streams);
     }
@@ -214,13 +238,46 @@ export default function MeetingRoom() {
   }));
 
   // Show pre-meeting lobby first
-  if (user && meetingId && !hasJoinedLobby) {
+  if (loading || meetingState === "checking") {
+    return <div className="flex h-screen items-center justify-center bg-meeting-bg"><div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent" /></div>;
+  }
+
+  if (meetingState !== "ready") {
+    const copy = meetingState === "missing"
+      ? ["Meeting not found", "Check the invite link or ask the host for a new one."]
+      : meetingState === "ended"
+        ? ["This meeting has ended", "Ask the host to start a new meeting."]
+        : meetingState === "cancelled"
+          ? ["This meeting was cancelled", "The host is no longer accepting participants."]
+          : ["Meeting unavailable", "We couldn't reach this meeting. Please try again."];
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-meeting-bg p-6 text-center">
+        <div className="max-w-md space-y-4">
+          <VideoOff className="mx-auto h-12 w-12 text-meeting-muted" />
+          <h1 className="text-2xl font-semibold text-meeting-text">{copy[0]}</h1>
+          <p className="text-meeting-muted">{copy[1]}</p>
+          <div className="flex justify-center gap-2">
+            {meetingState === "error" && <Button onClick={resolveMeeting}>Try again</Button>}
+            <Button variant="outline" onClick={() => navigate("/")}>Return home</Button>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  if (meetingId && !hasJoinedLobby) {
     return (
       <PreMeetingLobby
         meetingCode={meetingId}
-        meetingTitle="Video Meeting"
-        onJoin={() => setHasJoinedLobby(true)}
-        onCancel={() => navigate("/dashboard")}
+        meetingTitle={meetingTitle}
+        displayName={displayName}
+        isGuest={!user || Boolean(user.is_anonymous)}
+        onDisplayNameChange={setDisplayName}
+        onJoin={async (settings) => {
+          setJoinSettings(settings);
+          setHasJoinedLobby(true);
+        }}
+        onCancel={() => navigate(user?.is_anonymous ? "/" : "/dashboard")}
       />
     );
   }
@@ -236,17 +293,19 @@ export default function MeetingRoom() {
       <div className="flex h-screen items-center justify-center bg-meeting-bg">
         <div className="flex flex-col items-center gap-4 text-center">
           <p className="text-xl font-semibold text-meeting-text">Your request to join was declined</p>
-          <p className="text-meeting-text-muted">The host did not admit you to the meeting.</p>
-          <button onClick={() => navigate("/dashboard")} className="mt-4 text-primary hover:underline">
-            Return to dashboard
-          </button>
+          <p className="text-meeting-muted">The host did not admit you to the meeting.</p>
+          <Button onClick={() => navigate(user?.is_anonymous ? "/" : "/dashboard")} className="mt-4">Leave meeting</Button>
         </div>
       </div>
     );
   }
 
   // Show loading state
-  if (loading || (!isConnected && user)) {
+  if (joinError) {
+    return <div className="flex h-screen items-center justify-center bg-meeting-bg p-6 text-center"><div className="space-y-4"><h1 className="text-xl font-semibold text-meeting-text">Couldn’t join the meeting</h1><p className="text-meeting-muted">{joinError}</p><Button onClick={() => { setJoinError(null); setHasJoinedLobby(false); }}>Back to preview</Button></div></div>;
+  }
+
+  if (!isConnected && user) {
     return (
       <div className="flex h-screen items-center justify-center bg-meeting-bg">
         <div className="flex flex-col items-center gap-4">
@@ -263,7 +322,7 @@ export default function MeetingRoom() {
 
       <MeetingHeader
         meetingId={meetingId || "abc-defg-hij"}
-        meetingTitle="Video Meeting"
+        meetingTitle={meetingTitle}
         isRecording={isRecording}
         recordingDuration={recordingDuration}
         connectionQuality={connectionHealth.quality}
@@ -283,7 +342,7 @@ export default function MeetingRoom() {
             )}
           </div>
 
-          <div className="flex items-center justify-center gap-2 pb-6">
+          <div className="flex max-w-full items-center justify-start gap-2 overflow-x-auto px-3 pb-3 sm:justify-center sm:pb-6">
             <MeetingControls
               isMuted={isMuted}
               isVideoOn={isVideoOn}

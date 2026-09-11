@@ -47,7 +47,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user, signOut } = useAuth();
-  const { meetings, loading, createMeeting, deleteMeeting, updateMeetingStatus } = useMeetings();
+  const { meetings, loading, createMeeting, createInstantMeeting, deleteMeeting, updateMeetingStatus } = useMeetings();
   const [isScheduleOpen, setIsScheduleOpen] = useState(false);
   const [isJoinOpen, setIsJoinOpen] = useState(false);
   const [isInviteOpen, setIsInviteOpen] = useState(false);
@@ -62,9 +62,7 @@ export default function Dashboard() {
   }, [user, navigate]);
 
   const handleStartInstantMeeting = async () => {
-    const { data, error } = await createMeeting({
-      title: "Instant Meeting",
-    });
+    const { data, error } = await createInstantMeeting();
 
     if (error) {
       toast({
