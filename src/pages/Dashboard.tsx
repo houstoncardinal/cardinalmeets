@@ -47,7 +47,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user, signOut } = useAuth();
-  const { meetings, loading, createInstantMeeting, deleteMeeting, updateMeetingStatus } = useMeetings();
+  const { meetings, loading, createMeeting, createInstantMeeting, deleteMeeting, updateMeetingStatus } = useMeetings();
   const [isScheduleOpen, setIsScheduleOpen] = useState(false);
   const [isJoinOpen, setIsJoinOpen] = useState(false);
   const [isInviteOpen, setIsInviteOpen] = useState(false);
