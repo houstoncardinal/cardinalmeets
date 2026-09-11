@@ -22,6 +22,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { lovable } from "@/integrations/lovable/index";
 import { supabase } from "@/integrations/supabase/client";
 
+const getReturnPath = () => sessionStorage.getItem("cardinal:returnTo") || "/dashboard";
+
 const signInSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
@@ -56,7 +58,11 @@ export default function Auth() {
   const { user, signIn, signUp } = useAuth();
 
   useEffect(() => {
-    if (user) navigate("/dashboard");
+    if (user && !user.is_anonymous) {
+      const returnTo = getReturnPath();
+      sessionStorage.removeItem("cardinal:returnTo");
+      navigate(returnTo);
+    }
   }, [user, navigate]);
 
   const signInForm = useForm<SignInFormData>({
@@ -88,7 +94,9 @@ export default function Auth() {
       });
     } else {
       toast({ title: "Welcome back!", description: "Signed in successfully." });
-      navigate("/dashboard");
+      const returnTo = getReturnPath();
+      sessionStorage.removeItem("cardinal:returnTo");
+      navigate(returnTo);
     }
   };
 
@@ -135,7 +143,7 @@ export default function Auth() {
     setGoogleLoading(true);
     try {
       const { error } = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: window.location.origin,
+        redirect_uri: `${window.location.origin}/auth`,
       });
       if (error) throw error;
     } catch (err: any) {

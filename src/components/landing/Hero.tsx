@@ -4,14 +4,31 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowRight, Play, Shield, Lock, Globe } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
+import { useMeetings } from "@/hooks/useMeetings";
+import { isValidMeetingCode, normalizeMeetingCode } from "@/lib/meetingLinks";
 
 export function Hero() {
   const navigate = useNavigate();
   const [meetingCode, setMeetingCode] = useState("");
+  const [isCreating, setIsCreating] = useState(false);
+  const { user } = useAuth();
+  const { createInstantMeeting } = useMeetings();
 
-  const handleNewMeeting = () => {
-    const newMeetingId = `${Math.random().toString(36).substring(2, 5)}-${Math.random().toString(36).substring(2, 6)}-${Math.random().toString(36).substring(2, 5)}`;
-    navigate(`/meeting/${newMeetingId}`);
+  const handleNewMeeting = async () => {
+    if (!user || user.is_anonymous) {
+      sessionStorage.setItem("cardinal:returnTo", "/?start=instant");
+      navigate("/auth");
+      return;
+    }
+    setIsCreating(true);
+    const { data, error } = await createInstantMeeting();
+    setIsCreating(false);
+    if (error || !data) {
+      toast.error(error?.message || "Could not start the meeting");
+      return;
+    }
+    navigate(`/meeting/${data.meeting_code}`);
   };
 
   const handleJoinMeeting = () => {
@@ -19,7 +36,11 @@ export function Hero() {
       toast.error("Please enter a meeting code");
       return;
     }
-    navigate(`/meeting/${meetingCode.trim()}`);
+    if (!isValidMeetingCode(meetingCode)) {
+      toast.error("Enter a valid meeting code or invite link");
+      return;
+    }
+    navigate(`/meeting/${normalizeMeetingCode(meetingCode)}`);
   };
 
   return (
@@ -59,10 +80,11 @@ export function Hero() {
               <Button
                 size="lg"
                 onClick={handleNewMeeting}
+                disabled={isCreating}
                 className="h-14 gap-3 px-8 text-base"
               >
                 <Play className="h-5 w-5" />
-                Start Instant Meeting
+                {isCreating ? "Starting…" : "Start Instant Meeting"}
               </Button>
 
               <div className="flex w-full items-center gap-3 md:w-auto">

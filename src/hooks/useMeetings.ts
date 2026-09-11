@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
+import { normalizeMeetingCode } from "@/lib/meetingLinks";
 
 interface Meeting {
   id: string;
@@ -103,6 +104,17 @@ export function useMeetings() {
     return { data: newMeeting as Meeting | null, error };
   };
 
+  const createInstantMeeting = async () => {
+    if (!user || user.is_anonymous) return { data: null, error: new Error("Sign in to host a meeting") };
+
+    const { data, error } = await supabase.rpc("create_instant_meeting", {
+      _title: "Instant Meeting",
+    });
+    const meeting = data as Meeting | null;
+    if (!error && meeting) setMeetings((prev) => [...prev, meeting]);
+    return { data: meeting, error };
+  };
+
   const updateMeetingStatus = async (meetingId: string, status: Meeting["status"]) => {
     const { error } = await supabase
       .from("meetings")
@@ -135,7 +147,7 @@ export function useMeetings() {
     const { data, error } = await supabase
       .from("meetings")
       .select("*")
-      .eq("meeting_code", code)
+      .eq("meeting_code", normalizeMeetingCode(code))
       .single();
 
     return { data: data as Meeting | null, error };
@@ -145,6 +157,7 @@ export function useMeetings() {
     meetings,
     loading,
     createMeeting,
+    createInstantMeeting,
     updateMeetingStatus,
     deleteMeeting,
     getMeetingByCode,
